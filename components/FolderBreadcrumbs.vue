@@ -12,11 +12,11 @@
         variant="text"
         density="compact"
         class="text-none font-weight-medium"
-        :color="item.disabled ? 'primary' : undefined"
-        @click="$emit('select-folder', item.raw.path)"
+        :color="(item?.disabled || item?.raw?.disabled) ? 'primary' : undefined"
+        @click="$emit('select-folder', getItemPath(item))"
       >
-        <v-icon :icon="item.raw.icon" size="small" class="mr-1"></v-icon>
-        {{ item.title }}
+        <v-icon :icon="getItemIcon(item)" size="small" class="mr-1"></v-icon>
+        {{ item?.title || item?.raw?.title }}
       </v-btn>
     </template>
   </v-breadcrumbs>
@@ -39,6 +39,16 @@ const props = defineProps<{
 defineEmits<{
   (e: 'select-folder', path: string): void
 }>()
+
+function getItemPath(item: any): string {
+  if (!item) return ''
+  return item.raw?.path ?? item.path ?? ''
+}
+
+function getItemIcon(item: any): string {
+  if (!item) return 'mdi-folder-outline'
+  return item.raw?.icon ?? item.icon ?? 'mdi-folder-outline'
+}
 
 const breadcrumbItems = computed<BreadcrumbItem[]>(() => {
   const items: BreadcrumbItem[] = [
