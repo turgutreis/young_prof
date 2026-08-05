@@ -8,8 +8,8 @@
   >
     <v-card class="warm-card d-flex flex-column h-100 pa-0 elevation-6" rounded="xl">
       <!-- Modal Header -->
-      <v-card-title class="d-flex align-center justify-space-between pa-4 px-6 bg-surface-variant border-b">
-        <div class="d-flex align-center text-truncate pr-4">
+      <v-card-title class="d-flex align-center justify-space-between pa-4 px-6 bg-surface-variant border-b flex-wrap gap-2">
+        <div class="d-flex align-center text-truncate pr-4" style="max-width: 500px;">
           <v-avatar color="amber-darken-1" size="38" class="mr-3 elevation-2">
             <v-icon icon="mdi-book-open-page-variant" color="white" size="20"></v-icon>
           </v-avatar>
@@ -20,9 +20,23 @@
         </div>
         
         <div class="d-flex align-center gap-2">
+          <!-- Audio Button inside Viewer -->
           <v-btn
+            v-if="file?.hasAudio"
             color="primary"
             variant="flat"
+            size="small"
+            rounded="pill"
+            class="font-weight-bold"
+            prepend-icon="mdi-headphones"
+            @click="$emit('play-audio', file)"
+          >
+            Audio Anhören
+          </v-btn>
+
+          <v-btn
+            color="secondary"
+            variant="tonal"
             size="small"
             rounded="pill"
             class="font-weight-bold"
@@ -87,6 +101,7 @@ const props = defineProps<{
 
 defineEmits<{
   (e: 'update:modelValue', value: boolean): void
+  (e: 'play-audio', file: SohbetFile): void
 }>()
 
 const loading = ref(true)

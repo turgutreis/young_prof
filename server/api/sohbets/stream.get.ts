@@ -4,6 +4,7 @@ import { Readable } from 'stream'
 export default defineEventHandler(async (event) => {
   const query = getQuery(event)
   const config = useRuntimeConfig()
+  const reqHeaders = getHeaders(event)
 
   const key = (query.key as string || '').trim()
   const downloadMode = query.download === 'true'
@@ -15,9 +16,18 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const fileName = key.split('/').pop() || 'sohbet.pdf'
+  const fileName = key.split('/').pop() || 'sohbet-file'
+  const ext = fileName.split('.').pop()?.toLowerCase()
 
-  // If R2 credentials are set, fetch directly via S3 Client and stream with proper headers
+  // Determine Content-Type based on extension
+  let contentType = 'application/octet-stream'
+  if (ext === 'pdf') contentType = 'application/pdf'
+  else if (ext === 'mp3') contentType = 'audio/mpeg'
+  else if (ext === 'm4a') contentType = 'audio/mp4'
+  else if (ext === 'wav') contentType = 'audio/wav'
+  else if (ext === 'ogg') contentType = 'audio/ogg'
+
+  // If R2 credentials exist, fetch from S3 client with optional Range support
   if (config.r2AccessKeyId && config.r2SecretAccessKey) {
     try {
       const s3Client = new S3Client({
@@ -29,15 +39,25 @@ export default defineEventHandler(async (event) => {
         }
       })
 
+      const rangeHeader = reqHeaders.range
+
       const command = new GetObjectCommand({
         Bucket: config.r2BucketName,
-        Key: key
+        Key: key,
+        Range: rangeHeader
       })
 
       const response = await s3Client.send(command)
 
       if (response.Body) {
-        setHeader(event, 'Content-Type', response.ContentType || 'application/pdf')
+        setHeader(event, 'Content-Type', response.ContentType || contentType)
+        setHeader(event, 'Accept-Ranges', 'bytes')
+
+        if (response.ContentRange) {
+          setHeader(event, 'Content-Range', response.ContentRange)
+          setResponseStatus(event, 206, 'Partial Content')
+        }
+
         if (response.ContentLength) {
           setHeader(event, 'Content-Length', response.ContentLength)
         }
@@ -48,11 +68,11 @@ export default defineEventHandler(async (event) => {
         return sendStream(event, response.Body as Readable)
       }
     } catch (err: any) {
-      console.error('R2 Streaming Error:', err.message)
+      console.error('R2 Audio/PDF Streaming Error:', err.message)
     }
   }
 
-  // Fallback: If no credentials are set, redirect or serve sample PDF stream for testing
+  // Fallback: Direct public R2 URL redirect
   const encodedKey = key.split('/').map(part => encodeURIComponent(part)).join('/')
   const fallbackUrl = `${config.r2PublicUrl.replace(/\/$/, '')}/${encodedKey}`
 

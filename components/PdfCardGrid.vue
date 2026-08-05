@@ -24,15 +24,20 @@
         <v-card class="warm-card d-flex flex-column h-100 pa-5 elevation-2" elevation="0">
           <div class="card-accent-bar"></div>
 
-          <!-- Top Badge & File Format -->
+          <!-- Top Badges -->
           <div class="d-flex align-start justify-space-between mb-4 pt-1">
-            <v-avatar color="amber-darken-1" size="46" rounded="lg" class="elevation-3">
-              <v-icon icon="mdi-file-pdf-box" size="30" color="white"></v-icon>
+            <v-avatar :color="file.hasAudio ? 'primary' : 'amber-darken-1'" size="46" rounded="lg" class="elevation-3">
+              <v-icon :icon="file.hasAudio ? 'mdi-headphones' : 'mdi-file-pdf-box'" size="28" color="white"></v-icon>
             </v-avatar>
 
-            <v-chip size="small" color="secondary" variant="flat" class="font-weight-bold">
-              <v-icon icon="mdi-check-circle" start size="x-small"></v-icon> PDF Dokument
-            </v-chip>
+            <div class="d-flex flex-column align-end gap-1">
+              <v-chip size="x-small" color="secondary" variant="flat" class="font-weight-bold">
+                PDF
+              </v-chip>
+              <v-chip v-if="file.hasAudio" size="x-small" color="primary" variant="tonal" class="font-weight-bold">
+                <v-icon icon="mdi-headphones" start size="x-small"></v-icon> {{ file.durationLabel || 'Audio' }}
+              </v-chip>
+            </div>
           </div>
 
           <!-- Title & Subcategory -->
@@ -61,13 +66,28 @@
           </div>
 
           <!-- Action Buttons -->
-          <div class="d-flex gap-2">
+          <div class="d-flex flex-wrap gap-2">
+            <!-- Audio Play Button -->
             <v-btn
+              v-if="file.hasAudio"
               color="primary"
               variant="flat"
               size="small"
               rounded="pill"
-              class="flex-grow-1 font-weight-bold"
+              class="font-weight-bold flex-grow-1"
+              prepend-icon="mdi-play-circle"
+              @click="$emit('play-audio', file)"
+            >
+              Anhören
+            </v-btn>
+
+            <!-- PDF Preview Button -->
+            <v-btn
+              color="secondary"
+              :variant="file.hasAudio ? 'tonal' : 'flat'"
+              size="small"
+              rounded="pill"
+              class="font-weight-bold flex-grow-1"
               prepend-icon="mdi-eye-outline"
               @click="$emit('preview-file', file)"
             >
@@ -75,14 +95,14 @@
             </v-btn>
 
             <v-btn
-              color="secondary"
+              color="surface-variant"
               variant="tonal"
               size="small"
               rounded="circle"
               icon="mdi-download"
               :href="file.downloadUrl"
               target="_blank"
-              title="Herunterladen"
+              title="PDF Herunterladen"
             ></v-btn>
 
             <v-btn
@@ -104,7 +124,7 @@
         <thead>
           <tr>
             <th class="font-weight-bold">Titel & Pfad</th>
-            <th class="font-weight-bold">Kategorie</th>
+            <th class="font-weight-bold">Format</th>
             <th class="font-weight-bold">Größe</th>
             <th class="font-weight-bold">Datum</th>
             <th class="text-right font-weight-bold">Aktionen</th>
@@ -114,8 +134,8 @@
           <tr v-for="file in files" :key="file.key">
             <td>
               <div class="d-flex align-center py-3">
-                <v-avatar color="amber-darken-1" size="36" rounded="lg" class="mr-3">
-                  <v-icon icon="mdi-file-pdf-box" color="white" size="20"></v-icon>
+                <v-avatar :color="file.hasAudio ? 'primary' : 'amber-darken-1'" size="36" rounded="lg" class="mr-3">
+                  <v-icon :icon="file.hasAudio ? 'mdi-headphones' : 'mdi-file-pdf-box'" color="white" size="20"></v-icon>
                 </v-avatar>
                 <div>
                   <div class="font-weight-bold">{{ file.name }}</div>
@@ -124,38 +144,45 @@
               </div>
             </td>
             <td>
-              <v-chip size="x-small" color="secondary" variant="flat" class="font-weight-bold">
-                {{ file.subCategory }}
-              </v-chip>
+              <div class="d-flex gap-1">
+                <v-chip size="x-small" color="secondary" variant="flat" class="font-weight-bold">PDF</v-chip>
+                <v-chip v-if="file.hasAudio" size="x-small" color="primary" variant="tonal" class="font-weight-bold">
+                  Audio
+                </v-chip>
+              </div>
             </td>
             <td class="text-caption font-weight-medium">{{ formatFileSize(file.size) }}</td>
             <td class="text-caption text-medium-emphasis">{{ formatDate(file.lastModified) }}</td>
             <td class="text-right">
               <v-btn
-                icon="mdi-eye-outline"
-                variant="tonal"
+                v-if="file.hasAudio"
+                icon="mdi-play-circle"
+                variant="flat"
                 size="small"
                 color="primary"
                 rounded="circle"
                 class="mr-1"
-                @click="$emit('preview-file', file)"
+                title="Audio Anhören"
+                @click="$emit('play-audio', file)"
               ></v-btn>
               <v-btn
-                icon="mdi-download"
+                icon="mdi-eye-outline"
                 variant="tonal"
                 size="small"
                 color="secondary"
                 rounded="circle"
                 class="mr-1"
-                :href="file.downloadUrl"
-                target="_blank"
+                title="PDF Vorschau"
+                @click="$emit('preview-file', file)"
               ></v-btn>
               <v-btn
-                icon="mdi-content-copy"
+                icon="mdi-download"
                 variant="outlined"
                 size="small"
                 rounded="circle"
-                @click="copyLink(file)"
+                class="mr-1"
+                :href="file.downloadUrl"
+                target="_blank"
               ></v-btn>
             </td>
           </tr>
@@ -182,6 +209,7 @@ defineProps<{
 
 defineEmits<{
   (e: 'preview-file', file: SohbetFile): void
+  (e: 'play-audio', file: SohbetFile): void
 }>()
 
 const snackbar = ref(false)
@@ -213,6 +241,10 @@ function copyLink(file: SohbetFile) {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+.gap-1 {
+  gap: 4px;
 }
 
 .gap-2 {

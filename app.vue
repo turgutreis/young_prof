@@ -11,8 +11,8 @@
             <v-icon icon="mdi-book-heart-outline" color="white" size="24"></v-icon>
           </v-avatar>
           <div>
-            <h2 class="text-h6 font-weight-bold gradient-text-warm">Sohbet Archiv</h2>
-            <div class="text-caption text-medium-emphasis">PDF Bibliothek & Wissensportal</div>
+            <h2 class="text-h6 font-weight-bold gradient-text-warm">Sohbet & Podcast Archiv</h2>
+            <div class="text-caption text-medium-emphasis">PDF & Audio Bibliothek</div>
           </div>
         </div>
 
@@ -21,7 +21,7 @@
         <!-- Search Input -->
         <v-text-field
           v-model="searchQuery"
-          placeholder="Welche Sohbet suchst du?"
+          placeholder="Sohbet oder Podcast suchen..."
           prepend-inner-icon="mdi-magnify"
           variant="solo"
           flat
@@ -31,6 +31,19 @@
           rounded="pill"
           class="max-width-320 mx-4 d-none d-sm-flex elevation-1"
         ></v-text-field>
+
+        <!-- Filter Audio Only Toggle -->
+        <v-btn
+          :color="audioOnlyFilter ? 'primary' : 'surface-variant'"
+          :variant="audioOnlyFilter ? 'flat' : 'tonal'"
+          size="small"
+          rounded="pill"
+          class="font-weight-bold mr-2"
+          prepend-icon="mdi-headphones"
+          @click="audioOnlyFilter = !audioOnlyFilter"
+        >
+          {{ audioOnlyFilter ? 'Nur mit Audio' : 'Alle Dateitypen' }}
+        </v-btn>
 
         <!-- View Mode Switch -->
         <v-btn-toggle
@@ -68,7 +81,7 @@
             <v-col cols="12" md="8">
               <div class="d-flex align-center flex-wrap gap-2 mb-3">
                 <v-chip color="primary" variant="flat" size="small" class="font-weight-bold">
-                  <v-icon icon="mdi-sparkles" start size="small"></v-icon> Willkommen
+                  <v-icon icon="mdi-headphones" start size="small"></v-icon> Podcast & Audio Bereit
                 </v-chip>
                 <v-chip color="secondary" variant="tonal" size="small" class="font-weight-bold">
                   <v-icon icon="mdi-folder-heart-outline" start size="small"></v-icon> Cloudflare R2 Storage
@@ -76,10 +89,10 @@
               </div>
 
               <h1 class="text-h4 text-md-h3 font-weight-extrabold mb-3">
-                Entdecke & lerne mit <span class="gradient-text-warm">Sohbet-Unterlagen</span>
+                Sohbets <span class="gradient-text-warm">Hören & Mitlesen</span>
               </h1>
               <p class="text-body-1 text-medium-emphasis mb-4" style="max-width: 650px;">
-                Eine friedliche, übersichtliche Bibliothek für deine Themen-Sohbets, Gençlik Müfredatı und Unterrichtsmaterialien. Alles direkt im Browser lesen oder herunterladen.
+                Eine friedliche Podcast- & Leseplattform. Höre dir Sohbets unterwegs im Player an oder lies gleichzeitig in den zugehörigen PDFs mit.
               </p>
 
               <!-- Quick Tag Badges -->
@@ -102,10 +115,10 @@
             <v-col cols="12" md="4" class="text-md-right">
               <v-card class="warm-card pa-4 text-center d-inline-block w-100" style="max-width: 280px;">
                 <v-avatar color="primary" size="56" class="mb-2 elevation-2">
-                  <v-icon icon="mdi-file-document-multiple-outline" size="32" color="white"></v-icon>
+                  <v-icon icon="mdi-podcast" size="32" color="white"></v-icon>
                 </v-avatar>
                 <div class="text-h4 font-weight-bold primary--text">{{ totalFilesCount }}</div>
-                <div class="text-caption font-weight-semibold text-medium-emphasis">PDF-Dokumente bereit</div>
+                <div class="text-caption font-weight-semibold text-medium-emphasis">Sohbets verfügbar</div>
               </v-card>
             </v-col>
           </v-row>
@@ -114,7 +127,7 @@
         <!-- Mobile Search Bar -->
         <v-text-field
           v-model="searchQuery"
-          placeholder="Welche Sohbet suchst du?"
+          placeholder="Sohbet oder Podcast suchen..."
           prepend-inner-icon="mdi-magnify"
           variant="solo"
           flat
@@ -150,22 +163,31 @@
               <v-progress-circular indeterminate color="primary" size="64" width="6"></v-progress-circular>
             </div>
 
-            <!-- PDF Grid / Table -->
+            <!-- PDF & Podcast Grid / Table -->
             <PdfCardGrid
               v-else
               :files="filesList"
               :view-mode="viewMode"
               @preview-file="openPreview"
+              @play-audio="playAudio"
             />
           </v-col>
         </v-row>
       </v-container>
     </v-main>
 
+    <!-- Global Persistent Audio Player Bar -->
+    <AudioPlayerBar
+      :current-track="activeTrack"
+      @close="activeTrack = null"
+      @open-pdf="openPreview"
+    />
+
     <!-- PDF Preview Modal -->
     <PdfViewerModal
       v-model="previewModalOpen"
       :file="selectedPreviewFile"
+      @play-audio="playAudio"
     />
   </v-app>
 </template>
@@ -180,9 +202,11 @@ const theme = useTheme()
 const searchQuery = ref('')
 const selectedFolder = ref('')
 const viewMode = ref<'grid' | 'table'>('grid')
+const audioOnlyFilter = ref(false)
 
 const previewModalOpen = ref(false)
 const selectedPreviewFile = ref<SohbetFile | null>(null)
+const activeTrack = ref<SohbetFile | null>(null)
 
 const quickCategories = [
   { label: 'Gençlik Müfredatı', path: 'sohbets/INT - SYF - GENCLIK MFRDT/' },
@@ -195,7 +219,8 @@ const quickCategories = [
 const { data, pending } = await useFetch('/api/sohbets', {
   query: computed(() => ({
     search: searchQuery.value,
-    path: selectedFolder.value
+    path: selectedFolder.value,
+    audioOnly: audioOnlyFilter.value ? 'true' : 'false'
   }))
 })
 
@@ -214,6 +239,10 @@ function selectFolder(path: string) {
 function openPreview(file: SohbetFile) {
   selectedPreviewFile.value = file
   previewModalOpen.value = true
+}
+
+function playAudio(file: SohbetFile) {
+  activeTrack.value = file
 }
 </script>
 

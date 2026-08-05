@@ -13,9 +13,9 @@
         density="compact"
         class="text-none font-weight-medium"
         :color="item.disabled ? 'primary' : undefined"
-        @click="$emit('select-folder', item.path)"
+        @click="$emit('select-folder', item.raw.path)"
       >
-        <v-icon :icon="item.icon" size="small" class="mr-1"></v-icon>
+        <v-icon :icon="item.raw.icon" size="small" class="mr-1"></v-icon>
         {{ item.title }}
       </v-btn>
     </template>
@@ -25,6 +25,13 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
+interface BreadcrumbItem {
+  title: string
+  path: string
+  icon: string
+  disabled: boolean
+}
+
 const props = defineProps<{
   currentPath: string
 }>()
@@ -33,8 +40,8 @@ defineEmits<{
   (e: 'select-folder', path: string): void
 }>()
 
-const breadcrumbItems = computed(() => {
-  const items = [
+const breadcrumbItems = computed<BreadcrumbItem[]>(() => {
+  const items: BreadcrumbItem[] = [
     {
       title: 'Alle Sohbets',
       path: '',
