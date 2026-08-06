@@ -163,14 +163,21 @@
               <v-progress-circular indeterminate color="primary" size="64" width="6"></v-progress-circular>
             </div>
 
-            <!-- PDF & Podcast Grid / Table -->
-            <PdfCardGrid
-              v-else
-              :files="filesList"
-              :view-mode="viewMode"
-              @preview-file="openPreview"
-              @play-audio="playAudio"
-            />
+            <template v-else>
+              <!-- Category / Subfolder Cards Grid -->
+              <FolderCardGrid
+                :sub-folders="currentSubFolders"
+                @select-folder="selectFolder"
+              />
+
+              <!-- PDF & Podcast Files Grid / Table -->
+              <PdfCardGrid
+                :files="filesList"
+                :view-mode="viewMode"
+                @preview-file="openPreview"
+                @play-audio="playAudio"
+              />
+            </template>
           </v-col>
         </v-row>
       </v-container>
@@ -227,6 +234,27 @@ const { data, pending } = await useFetch('/api/sohbets', {
 const filesList = computed<SohbetFile[]>(() => data.value?.files || [])
 const folderTree = computed<FolderNode[]>(() => data.value?.folderTree || [])
 const totalFilesCount = computed(() => data.value?.totalFiles || 0)
+
+// Compute subfolders of the currently selected path
+const currentSubFolders = computed<FolderNode[]>(() => {
+  if (!selectedFolder.value) {
+    return folderTree.value
+  }
+
+  function findNode(nodes: FolderNode[], path: string): FolderNode | null {
+    for (const node of nodes) {
+      if (node.fullPath === path) return node
+      if (path.startsWith(node.fullPath)) {
+        const found = findNode(node.children, path)
+        if (found) return found
+      }
+    }
+    return null
+  }
+
+  const targetNode = findNode(folderTree.value, selectedFolder.value)
+  return targetNode ? targetNode.children : []
+})
 
 function toggleTheme() {
   theme.global.name.value = theme.global.current.value.dark ? 'light' : 'dark'
