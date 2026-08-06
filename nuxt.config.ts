@@ -3,6 +3,9 @@ import { defineNuxtConfig } from 'nuxt/config'
 export default defineNuxtConfig({
   compatibilityDate: '2026-08-03',
   ssr: true,
+  experimental: {
+    appManifest: false
+  },
   css: [
     'vuetify/styles',
     '@mdi/font/css/materialdesignicons.css',
