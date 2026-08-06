@@ -5,9 +5,9 @@
       <v-avatar color="primary" variant="tonal" size="80" class="mb-4">
         <v-icon icon="mdi-book-search-outline" size="48" color="primary"></v-icon>
       </v-avatar>
-      <h3 class="text-h5 font-weight-bold mb-2">Keine Sohbets gefunden</h3>
+      <h3 class="text-h5 font-weight-bold mb-2">Keine Dateien gefunden</h3>
       <p class="text-body-1 text-medium-emphasis mb-6">
-        Für deinen ausgewählten Ordner oder Suchbegriff gibt es noch keine Dokumente.
+        Für deinen ausgewählten Ordner oder Suchbegriff gibt es noch keine Dokumente oder Audio-Dateien.
       </p>
     </v-card>
 
@@ -26,16 +26,16 @@
 
           <!-- Top Badges -->
           <div class="d-flex align-start justify-space-between mb-4 pt-1">
-            <v-avatar :color="file.hasAudio ? 'primary' : 'amber-darken-1'" size="46" rounded="lg" class="elevation-3">
-              <v-icon :icon="file.hasAudio ? 'mdi-headphones' : 'mdi-file-pdf-box'" size="28" color="white"></v-icon>
+            <v-avatar :color="file.hasPdf ? 'amber-darken-1' : 'primary'" size="46" rounded="lg" class="elevation-3">
+              <v-icon :icon="file.hasPdf ? 'mdi-file-pdf-box' : 'mdi-headphones'" size="28" color="white"></v-icon>
             </v-avatar>
 
             <div class="d-flex flex-column align-end gap-1">
-              <v-chip size="x-small" color="secondary" variant="flat" class="font-weight-bold">
+              <v-chip v-if="file.hasPdf" size="x-small" color="secondary" variant="flat" class="font-weight-bold">
                 PDF
               </v-chip>
-              <v-chip v-if="file.hasAudio" size="x-small" color="primary" variant="tonal" class="font-weight-bold">
-                <v-icon icon="mdi-headphones" start size="x-small"></v-icon> {{ file.durationLabel || 'Audio' }}
+              <v-chip v-if="file.hasAudio" size="x-small" color="primary" variant="flat" class="font-weight-bold">
+                <v-icon icon="mdi-headphones" start size="x-small"></v-icon> {{ file.hasPdf ? 'Audio & PDF' : 'Audio Track' }}
               </v-chip>
             </div>
           </div>
@@ -81,8 +81,9 @@
               Anhören
             </v-btn>
 
-            <!-- PDF Preview Button -->
+            <!-- PDF Preview Button (Only if PDF exists) -->
             <v-btn
+              v-if="file.hasPdf"
               color="secondary"
               :variant="file.hasAudio ? 'tonal' : 'flat'"
               size="small"
@@ -102,7 +103,7 @@
               icon="mdi-download"
               :href="file.downloadUrl"
               target="_blank"
-              title="PDF Herunterladen"
+              title="Datei Herunterladen"
             ></v-btn>
 
             <v-btn
@@ -134,8 +135,8 @@
           <tr v-for="file in files" :key="file.key">
             <td>
               <div class="d-flex align-center py-3">
-                <v-avatar :color="file.hasAudio ? 'primary' : 'amber-darken-1'" size="36" rounded="lg" class="mr-3">
-                  <v-icon :icon="file.hasAudio ? 'mdi-headphones' : 'mdi-file-pdf-box'" color="white" size="20"></v-icon>
+                <v-avatar :color="file.hasPdf ? 'amber-darken-1' : 'primary'" size="36" rounded="lg" class="mr-3">
+                  <v-icon :icon="file.hasPdf ? 'mdi-file-pdf-box' : 'mdi-headphones'" color="white" size="20"></v-icon>
                 </v-avatar>
                 <div>
                   <div class="font-weight-bold">{{ file.name }}</div>
@@ -145,8 +146,8 @@
             </td>
             <td>
               <div class="d-flex gap-1">
-                <v-chip size="x-small" color="secondary" variant="flat" class="font-weight-bold">PDF</v-chip>
-                <v-chip v-if="file.hasAudio" size="x-small" color="primary" variant="tonal" class="font-weight-bold">
+                <v-chip v-if="file.hasPdf" size="x-small" color="secondary" variant="flat" class="font-weight-bold">PDF</v-chip>
+                <v-chip v-if="file.hasAudio" size="x-small" color="primary" variant="flat" class="font-weight-bold">
                   Audio
                 </v-chip>
               </div>
@@ -166,6 +167,7 @@
                 @click="$emit('play-audio', file)"
               ></v-btn>
               <v-btn
+                v-if="file.hasPdf"
                 icon="mdi-eye-outline"
                 variant="tonal"
                 size="small"
@@ -193,7 +195,7 @@
     <!-- Copy Snackbar Notification -->
     <v-snackbar v-model="snackbar" timeout="3000" color="success" location="bottom right" rounded="pill">
       <v-icon icon="mdi-check-circle-outline" class="mr-2"></v-icon>
-      Sohbet Download-Link kopiert!
+      Download-Link kopiert!
     </v-snackbar>
   </div>
 </template>

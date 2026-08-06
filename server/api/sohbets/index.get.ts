@@ -7,10 +7,11 @@ export interface SohbetFile {
   size: number
   lastModified: string
   downloadUrl: string
-  previewUrl: string
+  previewUrl?: string
   category: string
   subCategory: string
   hasAudio: boolean
+  hasPdf: boolean
   audioUrl?: string
   audioKey?: string
   durationLabel?: string
@@ -23,10 +24,10 @@ export interface FolderNode {
   filesCount: number
 }
 
-// Sample audio URLs for testing in development
+// Sample audio for development testing
 const SAMPLE_AUDIO_URL = 'https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=lofi-study-112191.mp3'
 
-// Structured dataset matching Cloudflare R2 bucket with PDF and Audio support
+// Structured dataset matching Cloudflare R2 bucket
 const MOCK_FILES: SohbetFile[] = [
   {
     key: 'sohbets/INT - SYF - GENCLIK MFRDT/A - NAMAZ IBADETİ VE KAZANDIRDIKLARI/01_Namazin_Onemi_ve_Ibadet.pdf',
@@ -38,9 +39,24 @@ const MOCK_FILES: SohbetFile[] = [
     previewUrl: '/api/sohbets/stream?key=' + encodeURIComponent('sohbets/INT - SYF - GENCLIK MFRDT/A - NAMAZ IBADETİ VE KAZANDIRDIKLARI/01_Namazin_Onemi_ve_Ibadet.pdf'),
     category: 'INT - SYF - GENCLIK MFRDT',
     subCategory: 'A - NAMAZ IBADETİ VE KAZANDIRDIKLARI',
+    hasPdf: true,
     hasAudio: true,
     audioUrl: SAMPLE_AUDIO_URL,
     durationLabel: '14:20 Min.'
+  },
+  {
+    key: 'sohbets/Music/01_Testhalb_Audio.mp3',
+    name: '01 - Testhalb Audio Sohbet.mp3',
+    folderPath: 'sohbets/Music/',
+    size: 5200000,
+    lastModified: '2026-08-06T10:00:00Z',
+    downloadUrl: '/api/sohbets/stream?download=true&key=' + encodeURIComponent('sohbets/Music/01_Testhalb_Audio.mp3'),
+    category: 'Music',
+    subCategory: 'Audio',
+    hasPdf: false,
+    hasAudio: true,
+    audioUrl: SAMPLE_AUDIO_URL,
+    durationLabel: '12:30 Min.'
   },
   {
     key: 'sohbets/INT - SYF - GENCLIK MFRDT/A - NAMAZ IBADETİ VE KAZANDIRDIKLARI/02_Abdest_ve_Edepleri.pdf',
@@ -52,6 +68,7 @@ const MOCK_FILES: SohbetFile[] = [
     previewUrl: '/api/sohbets/stream?key=' + encodeURIComponent('sohbets/INT - SYF - GENCLIK MFRDT/A - NAMAZ IBADETİ VE KAZANDIRDIKLARI/02_Abdest_ve_Edepleri.pdf'),
     category: 'INT - SYF - GENCLIK MFRDT',
     subCategory: 'A - NAMAZ IBADETİ VE KAZANDIRDIKLARI',
+    hasPdf: true,
     hasAudio: true,
     audioUrl: SAMPLE_AUDIO_URL,
     durationLabel: '11:45 Min.'
@@ -66,6 +83,7 @@ const MOCK_FILES: SohbetFile[] = [
     previewUrl: '/api/sohbets/stream?key=' + encodeURIComponent('sohbets/INT - SYF - GENCLIK MFRDT/B - AHLAK VE KARAKTER/01_Genclik_ve_Guzel_Ahlak.pdf'),
     category: 'INT - SYF - GENCLIK MFRDT',
     subCategory: 'B - AHLAK VE KARAKTER',
+    hasPdf: true,
     hasAudio: true,
     audioUrl: SAMPLE_AUDIO_URL,
     durationLabel: '18:10 Min.'
@@ -80,21 +98,8 @@ const MOCK_FILES: SohbetFile[] = [
     previewUrl: '/api/sohbets/stream?key=' + encodeURIComponent('sohbets/INT - SYF - GENCLIK MFRDT/C - INANC ESASLARI/01_Tevhid_ve_Iman_Hakikatleri.pdf'),
     category: 'INT - SYF - GENCLIK MFRDT',
     subCategory: 'C - INANC ESASLARI',
+    hasPdf: true,
     hasAudio: false
-  },
-  {
-    key: 'sohbets/TEMEL_SOHBETLER/01_Kurani_Kerim_Okuma_ve_Anlama.pdf',
-    name: '01 - Kur\'an-ı Kerim Okuma ve Anlama Metodu.pdf',
-    folderPath: 'sohbets/TEMEL_SOHBETLER/',
-    size: 1950000,
-    lastModified: '2026-08-02T11:45:00Z',
-    downloadUrl: '/api/sohbets/stream?download=true&key=' + encodeURIComponent('sohbets/TEMEL_SOHBETLER/01_Kurani_Kerim_Okuma_ve_Anlama.pdf'),
-    previewUrl: '/api/sohbets/stream?key=' + encodeURIComponent('sohbets/TEMEL_SOHBETLER/01_Kurani_Kerim_Okuma_ve_Anlama.pdf'),
-    category: 'TEMEL_SOHBETLER',
-    subCategory: 'Genel',
-    hasAudio: true,
-    audioUrl: SAMPLE_AUDIO_URL,
-    durationLabel: '22:05 Min.'
   }
 ]
 
@@ -127,19 +132,59 @@ export default defineEventHandler(async (event) => {
       const response = await s3Client.send(command)
 
       if (response.Contents) {
-        const audioMap = new Map<string, string>()
+        const pdfMap = new Map<string, any>()
+        const audioMap = new Map<string, any>()
 
-        // Find all audio keys first (.mp3, .m4a, .wav)
         response.Contents.forEach(item => {
-          if (item.Key && (item.Key.endsWith('.mp3') || item.Key.endsWith('.m4a') || item.Key.endsWith('.wav'))) {
-            const baseName = item.Key.substring(0, item.Key.lastIndexOf('.'))
-            audioMap.set(baseName, item.Key)
+          if (!item.Key) return
+          const ext = item.Key.substring(item.Key.lastIndexOf('.')).toLowerCase()
+          const baseKey = item.Key.substring(0, item.Key.lastIndexOf('.'))
+
+          if (ext === '.pdf') {
+            pdfMap.set(baseKey, item)
+          } else if (['.mp3', '.m4a', '.wav', '.ogg'].includes(ext)) {
+            audioMap.set(baseKey, item)
           }
         })
 
-        files = response.Contents
-          .filter(item => item.Key && item.Key.endsWith('.pdf'))
-          .map(item => {
+        const processedKeys = new Set<string>()
+
+        // 1. Process all PDFs (and check for paired Audio)
+        pdfMap.forEach((item, baseKey) => {
+          processedKeys.add(baseKey)
+          const key = item.Key!
+          const parts = key.split('/')
+          const fileName = parts[parts.length - 1]
+          const folderPath = key.substring(0, key.lastIndexOf('/') + 1)
+          
+          const category = parts.length > 2 ? parts[1] : 'Genel'
+          const subCategory = parts.length > 3 ? parts[2] : 'Genel'
+
+          const matchingAudioItem = audioMap.get(baseKey)
+          const hasAudio = !!matchingAudioItem
+          const audioUrl = matchingAudioItem ? `/api/sohbets/stream?key=${encodeURIComponent(matchingAudioItem.Key!)}` : undefined
+
+          files.push({
+            key,
+            name: fileName,
+            folderPath,
+            size: item.Size || 0,
+            lastModified: item.LastModified ? item.LastModified.toISOString() : new Date().toISOString(),
+            downloadUrl: `/api/sohbets/stream?download=true&key=${encodeURIComponent(key)}`,
+            previewUrl: `/api/sohbets/stream?key=${encodeURIComponent(key)}`,
+            category,
+            subCategory,
+            hasPdf: true,
+            hasAudio,
+            audioUrl,
+            audioKey: matchingAudioItem?.Key,
+            durationLabel: hasAudio ? 'Audio & PDF' : 'PDF'
+          })
+        })
+
+        // 2. Process standalone Audio files (without PDF)
+        audioMap.forEach((item, baseKey) => {
+          if (!processedKeys.has(baseKey)) {
             const key = item.Key!
             const parts = key.split('/')
             const fileName = parts[parts.length - 1]
@@ -148,28 +193,25 @@ export default defineEventHandler(async (event) => {
             const category = parts.length > 2 ? parts[1] : 'Genel'
             const subCategory = parts.length > 3 ? parts[2] : 'Genel'
 
-            const baseName = key.substring(0, key.lastIndexOf('.'))
-            const matchingAudioKey = audioMap.get(baseName)
+            const audioUrl = `/api/sohbets/stream?key=${encodeURIComponent(key)}`
 
-            const hasAudio = !!matchingAudioKey
-            const audioUrl = matchingAudioKey ? `/api/sohbets/stream?key=${encodeURIComponent(matchingAudioKey)}` : undefined
-
-            return {
+            files.push({
               key,
               name: fileName,
               folderPath,
               size: item.Size || 0,
               lastModified: item.LastModified ? item.LastModified.toISOString() : new Date().toISOString(),
               downloadUrl: `/api/sohbets/stream?download=true&key=${encodeURIComponent(key)}`,
-              previewUrl: `/api/sohbets/stream?key=${encodeURIComponent(key)}`,
               category,
               subCategory,
-              hasAudio,
+              hasPdf: false,
+              hasAudio: true,
               audioUrl,
-              audioKey: matchingAudioKey,
-              durationLabel: hasAudio ? 'Audio Paket' : undefined
-            }
-          })
+              audioKey: key,
+              durationLabel: 'Audio Track'
+            })
+          }
+        })
       }
     } catch (err: any) {
       console.warn('R2 Storage query fallback to structured dataset:', err.message)
