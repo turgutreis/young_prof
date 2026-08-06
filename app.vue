@@ -108,8 +108,24 @@
                 Sohbets <span class="gradient-text-warm">Hören & Mitlesen</span>
               </h1>
               <p class="text-body-1 text-medium-emphasis mb-4" style="max-width: 650px;">
-                Navigiere durch deine Ordner und Kategorien. Höre dir Sohbets unterwegs an oder lies in den PDFs mit.
+                Wähle eine Kategorie aus, navigiere durch Ordner und lies oder höre dir die Unterlagen direkt im Browser an.
               </p>
+
+              <!-- Meta Categories Pill Buttons -->
+              <div class="d-flex align-center flex-wrap gap-2">
+                <v-chip
+                  v-for="cat in quickCategories"
+                  :key="cat.path"
+                  size="small"
+                  variant="flat"
+                  color="primary"
+                  class="cursor-pointer font-weight-bold"
+                  @click="selectFolder(cat.path)"
+                >
+                  <v-icon :icon="cat.icon" start size="small"></v-icon>
+                  {{ cat.label }}
+                </v-chip>
+              </div>
             </v-col>
 
             <v-col cols="12" md="4" class="text-md-right">
@@ -118,7 +134,7 @@
                   <v-icon icon="mdi-folder-text-outline" size="32" color="white"></v-icon>
                 </v-avatar>
                 <div class="text-h4 font-weight-bold primary--text">{{ totalFilesCount }}</div>
-                <div class="text-caption font-weight-semibold text-medium-emphasis">Dateien in diesem Ordner</div>
+                <div class="text-caption font-weight-semibold text-medium-emphasis">Dateien in dieser Ebene</div>
               </v-card>
             </v-col>
           </v-row>
@@ -164,7 +180,7 @@
             </div>
 
             <template v-else>
-              <!-- Category / Subfolder Cards Grid -->
+              <!-- Meta Category / Subfolder Cards Grid -->
               <FolderCardGrid
                 :sub-folders="subFoldersList"
                 @select-folder="selectFolder"
@@ -214,6 +230,14 @@ const audioOnlyFilter = ref(false)
 const previewModalOpen = ref(false)
 const selectedPreviewFile = ref<SohbetFile | null>(null)
 const activeTrack = ref<SohbetFile | null>(null)
+
+// 4 Meta Categories provided by the user
+const quickCategories = [
+  { label: 'MÜFREDAT', path: 'MÜFREDAT/', icon: 'mdi-school-outline' },
+  { label: 'KİTAP TAVSİYELERİ', path: 'KİTAP TAVSİYELERİ/', icon: 'mdi-book-open-page-variant-outline' },
+  { label: 'GEZİ GÜZERGAHLARI', path: 'GEZİ GÜZERGAHLARI/', icon: 'mdi-map-marker-path' },
+  { label: 'AKTİVİTELER / ÜNİTE ÇALIŞMALARI', path: 'AKTİVİTELER / ÜNİTE ÇALIŞMALARI/', icon: 'mdi-puzzle-outline' }
+]
 
 // Fetch Sohbets directly from Cloudflare R2 S3 API
 const { data, pending } = await useFetch('/api/sohbets', {
