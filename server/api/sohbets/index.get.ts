@@ -25,7 +25,7 @@ export interface FolderNode {
   icon?: string
 }
 
-// Fallback dataset matching the exact 4 Meta Categories provided by the user
+// Fallback dataset matching the exact 4 Meta Categories
 const MOCK_FILES: SohbetFile[] = [
   {
     key: 'sohbets/MÜFREDAT/INT - SYF - GENCLIK MFRDT/A - NAMAZ IBADETİ VE KAZANDIRDIKLARI/01_Namazin_Onemi_ve_Ibadet.pdf',
@@ -116,7 +116,7 @@ export default defineEventHandler(async (event) => {
   let subFolders: FolderNode[] = []
   let isLiveR2Data = false
 
-  // 1. LIVE R2 S3 API QUERY
+  // 1. LIVE CLOUDFLARE R2 S3 API QUERY
   if (config.r2AccessKeyId && config.r2SecretAccessKey) {
     try {
       const s3Client = new S3Client({
@@ -128,14 +128,31 @@ export default defineEventHandler(async (event) => {
         }
       })
 
-      const command = new ListObjectsV2Command({
+      let effectivePrefix = pathPrefix
+
+      // First query
+      let command = new ListObjectsV2Command({
         Bucket: config.r2BucketName,
-        Prefix: pathPrefix,
+        Prefix: effectivePrefix,
         Delimiter: '/'
       })
 
-      const response = await s3Client.send(command)
+      let response = await s3Client.send(command)
       isLiveR2Data = true
+
+      // If at root level and the only subfolder is "sohbets/", auto-step into "sohbets/"
+      if (!pathPrefix && response.CommonPrefixes && response.CommonPrefixes.length === 1) {
+        const singlePrefix = response.CommonPrefixes[0].Prefix
+        if (singlePrefix && singlePrefix.toLowerCase() === 'sohbets/') {
+          effectivePrefix = 'sohbets/'
+          command = new ListObjectsV2Command({
+            Bucket: config.r2BucketName,
+            Prefix: effectivePrefix,
+            Delimiter: '/'
+          })
+          response = await s3Client.send(command)
+        }
+      }
 
       // Parse Subfolders (CommonPrefixes)
       if (response.CommonPrefixes) {
@@ -161,7 +178,7 @@ export default defineEventHandler(async (event) => {
         const audioMap = new Map<string, any>()
 
         response.Contents.forEach(item => {
-          if (!item.Key || item.Key === pathPrefix) return
+          if (!item.Key || item.Key === effectivePrefix) return
           const ext = item.Key.substring(item.Key.lastIndexOf('.')).toLowerCase()
           const baseKey = item.Key.substring(0, item.Key.lastIndexOf('.'))
 
@@ -244,20 +261,21 @@ export default defineEventHandler(async (event) => {
   // 2. FALLBACK MODE IF NO R2 KEYS IN .ENV
   if (!isLiveR2Data) {
     let sourceFiles = MOCK_FILES
+    const activePrefix = pathPrefix || 'sohbets/'
 
-    if (pathPrefix) {
-      sourceFiles = sourceFiles.filter(f => f.folderPath.startsWith(pathPrefix) || f.key.startsWith(pathPrefix))
-    }
+    sourceFiles = sourceFiles.filter(f => f.folderPath.startsWith(activePrefix))
 
-    files = sourceFiles.filter(f => f.folderPath === pathPrefix || (!pathPrefix && f.folderPath.split('/').filter(Boolean).length <= 2))
+    // Direct files in activePrefix
+    files = sourceFiles.filter(f => f.folderPath === activePrefix)
 
+    // Subfolders under activePrefix
     const folderMap = new Map<string, FolderNode>()
     sourceFiles.forEach(f => {
-      if (f.folderPath.startsWith(pathPrefix) && f.folderPath !== pathPrefix) {
-        const relativePath = f.folderPath.substring(pathPrefix.length)
+      if (f.folderPath.startsWith(activePrefix) && f.folderPath !== activePrefix) {
+        const relativePath = f.folderPath.substring(activePrefix.length)
         const firstSegment = relativePath.split('/')[0]
         if (firstSegment) {
-          const fullPath = `${pathPrefix}${firstSegment}/`
+          const fullPath = `${activePrefix}${firstSegment}/`
           if (!folderMap.has(fullPath)) {
             folderMap.set(fullPath, {
               name: firstSegment,
