@@ -96,8 +96,8 @@
             </v-btn>
 
             <v-btn
-              color="surface-variant"
-              variant="tonal"
+              color="secondary"
+              variant="outlined"
               size="small"
               rounded="circle"
               icon="mdi-download"
