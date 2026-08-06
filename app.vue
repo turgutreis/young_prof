@@ -75,6 +75,22 @@
 
     <v-main class="bg-transparent min-vh-100 pb-16" style="position: relative; z-index: 1;">
       <v-container class="max-width-xl pt-8">
+        <!-- R2 Live Data Status Banner -->
+        <v-alert
+          v-if="!isLiveR2Data"
+          type="info"
+          variant="tonal"
+          color="amber-darken-1"
+          rounded="xl"
+          class="mb-6 elevation-2"
+          closable
+        >
+          <template #prepend>
+            <v-icon icon="mdi-key-wireframe" color="amber-darken-1" class="mr-2"></v-icon>
+          </template>
+          <strong>R2 S3 API Live-Verbindung:</strong> Füge <code>R2_ACCESS_KEY_ID</code> und <code>R2_SECRET_ACCESS_KEY</code> in deine <code>.env</code> Datei ein, um deine Live-Ordner direkt aus Cloudflare R2 abzufragen.
+        </v-alert>
+
         <!-- Welcoming Hero Banner -->
         <v-card class="hero-warm-banner pa-6 pa-md-8 mb-8 elevation-4" elevation="0">
           <v-row align="center">
@@ -84,7 +100,7 @@
                   <v-icon icon="mdi-headphones" start size="small"></v-icon> Podcast & Audio Bereit
                 </v-chip>
                 <v-chip color="secondary" variant="tonal" size="small" class="font-weight-bold">
-                  <v-icon icon="mdi-folder-heart-outline" start size="small"></v-icon> Cloudflare R2 Storage
+                  <v-icon icon="mdi-cloud-check-outline" start size="small"></v-icon> Live Cloudflare R2 S3 API
                 </v-chip>
               </div>
 
@@ -92,33 +108,17 @@
                 Sohbets <span class="gradient-text-warm">Hören & Mitlesen</span>
               </h1>
               <p class="text-body-1 text-medium-emphasis mb-4" style="max-width: 650px;">
-                Eine friedliche Podcast- & Leseplattform. Höre dir Sohbets unterwegs im Player an oder lies gleichzeitig in den zugehörigen PDFs mit.
+                Navigiere durch deine Ordner und Kategorien. Höre dir Sohbets unterwegs an oder lies in den PDFs mit.
               </p>
-
-              <!-- Quick Tag Badges -->
-              <div class="d-flex align-center flex-wrap gap-2">
-                <v-chip
-                  v-for="cat in quickCategories"
-                  :key="cat.path"
-                  size="small"
-                  variant="outlined"
-                  color="primary"
-                  class="cursor-pointer font-weight-medium"
-                  @click="selectFolder(cat.path)"
-                >
-                  <v-icon icon="mdi-bookmark-outline" start size="x-small"></v-icon>
-                  {{ cat.label }}
-                </v-chip>
-              </div>
             </v-col>
 
             <v-col cols="12" md="4" class="text-md-right">
               <v-card class="warm-card pa-4 text-center d-inline-block w-100" style="max-width: 280px;">
                 <v-avatar color="primary" size="56" class="mb-2 elevation-2">
-                  <v-icon icon="mdi-podcast" size="32" color="white"></v-icon>
+                  <v-icon icon="mdi-folder-text-outline" size="32" color="white"></v-icon>
                 </v-avatar>
                 <div class="text-h4 font-weight-bold primary--text">{{ totalFilesCount }}</div>
-                <div class="text-caption font-weight-semibold text-medium-emphasis">Sohbets verfügbar</div>
+                <div class="text-caption font-weight-semibold text-medium-emphasis">Dateien in diesem Ordner</div>
               </v-card>
             </v-col>
           </v-row>
@@ -143,7 +143,7 @@
           <!-- Left Sidebar Folder Tree -->
           <v-col cols="12" md="4" lg="3">
             <FolderTree
-              :folder-tree="folderTree"
+              :folder-tree="subFoldersList"
               :selected-path="selectedFolder"
               :total-files="totalFilesCount"
               @select-folder="selectFolder"
@@ -166,7 +166,7 @@
             <template v-else>
               <!-- Category / Subfolder Cards Grid -->
               <FolderCardGrid
-                :sub-folders="currentSubFolders"
+                :sub-folders="subFoldersList"
                 @select-folder="selectFolder"
               />
 
@@ -215,14 +215,7 @@ const previewModalOpen = ref(false)
 const selectedPreviewFile = ref<SohbetFile | null>(null)
 const activeTrack = ref<SohbetFile | null>(null)
 
-const quickCategories = [
-  { label: 'Gençlik Müfredatı', path: 'sohbets/INT - SYF - GENCLIK MFRDT/' },
-  { label: 'Namaz İbadeti', path: 'sohbets/INT - SYF - GENCLIK MFRDT/A - NAMAZ IBADETİ VE KAZANDIRDIKLARI/' },
-  { label: 'Ahlak & Karakter', path: 'sohbets/INT - SYF - GENCLIK MFRDT/B - AHLAK VE KARAKTER/' },
-  { label: 'İnanç Esasları', path: 'sohbets/INT - SYF - GENCLIK MFRDT/C - INANC ESASLARI/' }
-]
-
-// Fetch Sohbets from Nuxt Server API
+// Fetch Sohbets directly from Cloudflare R2 S3 API
 const { data, pending } = await useFetch('/api/sohbets', {
   query: computed(() => ({
     search: searchQuery.value,
@@ -232,29 +225,9 @@ const { data, pending } = await useFetch('/api/sohbets', {
 })
 
 const filesList = computed<SohbetFile[]>(() => data.value?.files || [])
-const folderTree = computed<FolderNode[]>(() => data.value?.folderTree || [])
+const subFoldersList = computed<FolderNode[]>(() => data.value?.subFolders || [])
 const totalFilesCount = computed(() => data.value?.totalFiles || 0)
-
-// Compute subfolders of the currently selected path
-const currentSubFolders = computed<FolderNode[]>(() => {
-  if (!selectedFolder.value) {
-    return folderTree.value
-  }
-
-  function findNode(nodes: FolderNode[], path: string): FolderNode | null {
-    for (const node of nodes) {
-      if (node.fullPath === path) return node
-      if (path.startsWith(node.fullPath)) {
-        const found = findNode(node.children, path)
-        if (found) return found
-      }
-    }
-    return null
-  }
-
-  const targetNode = findNode(folderTree.value, selectedFolder.value)
-  return targetNode ? targetNode.children : []
-})
+const isLiveR2Data = computed(() => data.value?.isLiveR2Data || false)
 
 function toggleTheme() {
   theme.global.name.value = theme.global.current.value.dark ? 'light' : 'dark'

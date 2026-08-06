@@ -24,10 +24,7 @@ export interface FolderNode {
   filesCount: number
 }
 
-// Sample audio for development testing
-const SAMPLE_AUDIO_URL = 'https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=lofi-study-112191.mp3'
-
-// Structured dataset matching Cloudflare R2 bucket
+// Fallback dataset used ONLY if R2 API keys are not configured in .env
 const MOCK_FILES: SohbetFile[] = [
   {
     key: 'sohbets/INT - SYF - GENCLIK MFRDT/A - NAMAZ IBADETİ VE KAZANDIRDIKLARI/01_Namazin_Onemi_ve_Ibadet.pdf',
@@ -41,7 +38,7 @@ const MOCK_FILES: SohbetFile[] = [
     subCategory: 'A - NAMAZ IBADETİ VE KAZANDIRDIKLARI',
     hasPdf: true,
     hasAudio: true,
-    audioUrl: SAMPLE_AUDIO_URL,
+    audioUrl: 'https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=lofi-study-112191.mp3',
     durationLabel: '14:20 Min.'
   },
   {
@@ -55,51 +52,8 @@ const MOCK_FILES: SohbetFile[] = [
     subCategory: 'Audio',
     hasPdf: false,
     hasAudio: true,
-    audioUrl: SAMPLE_AUDIO_URL,
+    audioUrl: 'https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=lofi-study-112191.mp3',
     durationLabel: '12:30 Min.'
-  },
-  {
-    key: 'sohbets/INT - SYF - GENCLIK MFRDT/A - NAMAZ IBADETİ VE KAZANDIRDIKLARI/02_Abdest_ve_Edepleri.pdf',
-    name: '02 - Abdest Rehberi ve İbadet Edepleri.pdf',
-    folderPath: 'sohbets/INT - SYF - GENCLIK MFRDT/A - NAMAZ IBADETİ VE KAZANDIRDIKLARI/',
-    size: 1820000,
-    lastModified: '2026-07-29T10:15:00Z',
-    downloadUrl: '/api/sohbets/stream?download=true&key=' + encodeURIComponent('sohbets/INT - SYF - GENCLIK MFRDT/A - NAMAZ IBADETİ VE KAZANDIRDIKLARI/02_Abdest_ve_Edepleri.pdf'),
-    previewUrl: '/api/sohbets/stream?key=' + encodeURIComponent('sohbets/INT - SYF - GENCLIK MFRDT/A - NAMAZ IBADETİ VE KAZANDIRDIKLARI/02_Abdest_ve_Edepleri.pdf'),
-    category: 'INT - SYF - GENCLIK MFRDT',
-    subCategory: 'A - NAMAZ IBADETİ VE KAZANDIRDIKLARI',
-    hasPdf: true,
-    hasAudio: true,
-    audioUrl: SAMPLE_AUDIO_URL,
-    durationLabel: '11:45 Min.'
-  },
-  {
-    key: 'sohbets/INT - SYF - GENCLIK MFRDT/B - AHLAK VE KARAKTER/01_Genclik_ve_Guzel_Ahlak.pdf',
-    name: '01 - Gençlik ve Güzel Ahlak Esasları.pdf',
-    folderPath: 'sohbets/INT - SYF - GENCLIK MFRDT/B - AHLAK VE KARAKTER/',
-    size: 3100000,
-    lastModified: '2026-07-30T09:00:00Z',
-    downloadUrl: '/api/sohbets/stream?download=true&key=' + encodeURIComponent('sohbets/INT - SYF - GENCLIK MFRDT/B - AHLAK VE KARAKTER/01_Genclik_ve_Guzel_Ahlak.pdf'),
-    previewUrl: '/api/sohbets/stream?key=' + encodeURIComponent('sohbets/INT - SYF - GENCLIK MFRDT/B - AHLAK VE KARAKTER/01_Genclik_ve_Guzel_Ahlak.pdf'),
-    category: 'INT - SYF - GENCLIK MFRDT',
-    subCategory: 'B - AHLAK VE KARAKTER',
-    hasPdf: true,
-    hasAudio: true,
-    audioUrl: SAMPLE_AUDIO_URL,
-    durationLabel: '18:10 Min.'
-  },
-  {
-    key: 'sohbets/INT - SYF - GENCLIK MFRDT/C - INANC ESASLARI/01_Tevhid_ve_Iman_Hakikatleri.pdf',
-    name: '01 - Tevhid ve İman Hakikatleri.pdf',
-    folderPath: 'sohbets/INT - SYF - GENCLIK MFRDT/C - INANC ESASLARI/',
-    size: 4200000,
-    lastModified: '2026-08-01T16:20:00Z',
-    downloadUrl: '/api/sohbets/stream?download=true&key=' + encodeURIComponent('sohbets/INT - SYF - GENCLIK MFRDT/C - INANC ESASLARI/01_Tevhid_ve_Iman_Hakikatleri.pdf'),
-    previewUrl: '/api/sohbets/stream?key=' + encodeURIComponent('sohbets/INT - SYF - GENCLIK MFRDT/C - INANC ESASLARI/01_Tevhid_ve_Iman_Hakikatleri.pdf'),
-    category: 'INT - SYF - GENCLIK MFRDT',
-    subCategory: 'C - INANC ESASLARI',
-    hasPdf: true,
-    hasAudio: false
   }
 ]
 
@@ -108,11 +62,19 @@ export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig()
   
   const search = (query.search as string || '').toLowerCase().trim()
-  const pathPrefix = (query.path as string || '').trim()
+  let pathPrefix = (query.path as string || '').trim()
   const audioOnlyFilter = query.audioOnly === 'true'
 
-  let files: SohbetFile[] = []
+  // Ensure pathPrefix ends with '/' if not empty
+  if (pathPrefix && !pathPrefix.endsWith('/')) {
+    pathPrefix += '/'
+  }
 
+  let files: SohbetFile[] = []
+  let subFolders: FolderNode[] = []
+  let isLiveR2Data = false
+
+  // 1. REAL LIVE CLOUDFLARE R2 S3 API QUERY
   if (config.r2AccessKeyId && config.r2SecretAccessKey) {
     try {
       const s3Client = new S3Client({
@@ -124,19 +86,41 @@ export default defineEventHandler(async (event) => {
         }
       })
 
+      // Query R2 with Delimiter: '/' to get true folder hierarchy & files at current level
       const command = new ListObjectsV2Command({
         Bucket: config.r2BucketName,
-        Prefix: pathPrefix || 'sohbets/'
+        Prefix: pathPrefix,
+        Delimiter: '/'
       })
 
       const response = await s3Client.send(command)
+      isLiveR2Data = true
 
+      // Parse Real Subfolders from R2 CommonPrefixes
+      if (response.CommonPrefixes) {
+        subFolders = response.CommonPrefixes
+          .filter(cp => cp.Prefix)
+          .map(cp => {
+            const fullPath = cp.Prefix!
+            const cleanPath = fullPath.replace(/\/$/, '')
+            const folderName = cleanPath.split('/').pop() || cleanPath
+
+            return {
+              name: folderName,
+              fullPath,
+              children: [],
+              filesCount: 0
+            }
+          })
+      }
+
+      // Parse Real Files at current folder level from R2 Contents
       if (response.Contents) {
         const pdfMap = new Map<string, any>()
         const audioMap = new Map<string, any>()
 
         response.Contents.forEach(item => {
-          if (!item.Key) return
+          if (!item.Key || item.Key === pathPrefix) return
           const ext = item.Key.substring(item.Key.lastIndexOf('.')).toLowerCase()
           const baseKey = item.Key.substring(0, item.Key.lastIndexOf('.'))
 
@@ -149,7 +133,6 @@ export default defineEventHandler(async (event) => {
 
         const processedKeys = new Set<string>()
 
-        // 1. Process all PDFs (and check for paired Audio)
         pdfMap.forEach((item, baseKey) => {
           processedKeys.add(baseKey)
           const key = item.Key!
@@ -182,7 +165,6 @@ export default defineEventHandler(async (event) => {
           })
         })
 
-        // 2. Process standalone Audio files (without PDF)
         audioMap.forEach((item, baseKey) => {
           if (!processedKeys.has(baseKey)) {
             const key = item.Key!
@@ -214,24 +196,49 @@ export default defineEventHandler(async (event) => {
         })
       }
     } catch (err: any) {
-      console.warn('R2 Storage query fallback to structured dataset:', err.message)
-      files = MOCK_FILES
+      console.warn('R2 S3 API error:', err.message)
     }
-  } else {
-    files = MOCK_FILES
   }
 
-  // Filter by path
-  if (pathPrefix) {
-    files = files.filter(f => f.folderPath.startsWith(pathPrefix) || f.key.startsWith(pathPrefix))
+  // 2. FALLBACK ONLY IF R2 KEYS ARE NOT IN .ENV
+  if (!isLiveR2Data) {
+    let sourceFiles = MOCK_FILES
+
+    if (pathPrefix) {
+      sourceFiles = sourceFiles.filter(f => f.folderPath.startsWith(pathPrefix) || f.key.startsWith(pathPrefix))
+    }
+
+    files = sourceFiles.filter(f => f.folderPath === pathPrefix || (!pathPrefix && f.folderPath.split('/').filter(Boolean).length <= 1))
+
+    // Build subfolders for fallback
+    const folderMap = new Map<string, FolderNode>()
+    sourceFiles.forEach(f => {
+      if (f.folderPath.startsWith(pathPrefix) && f.folderPath !== pathPrefix) {
+        const relativePath = f.folderPath.substring(pathPrefix.length)
+        const firstSegment = relativePath.split('/')[0]
+        if (firstSegment) {
+          const fullPath = `${pathPrefix}${firstSegment}/`
+          if (!folderMap.has(fullPath)) {
+            folderMap.set(fullPath, {
+              name: firstSegment,
+              fullPath,
+              children: [],
+              filesCount: 0
+            })
+          }
+          folderMap.get(fullPath)!.filesCount++
+        }
+      }
+    })
+    subFolders = Array.from(folderMap.values())
   }
 
-  // Filter by Audio Only
+  // Filter Audio Only
   if (audioOnlyFilter) {
     files = files.filter(f => f.hasAudio)
   }
 
-  // Filter by search term
+  // Search Filter
   if (search) {
     files = files.filter(f => 
       f.name.toLowerCase().includes(search) ||
@@ -241,41 +248,12 @@ export default defineEventHandler(async (event) => {
     )
   }
 
-  // Build folder hierarchy tree
-  const folderTree: FolderNode[] = []
-  const folderMap = new Map<string, FolderNode>()
-
-  files.forEach(file => {
-    const parts = file.folderPath.split('/').filter(Boolean)
-    let currentPath = ''
-
-    parts.forEach((part, index) => {
-      const parentPath = currentPath
-      currentPath = currentPath ? `${currentPath}/${part}/` : `${part}/`
-
-      if (!folderMap.has(currentPath)) {
-        const newNode: FolderNode = {
-          name: part,
-          fullPath: currentPath,
-          children: [],
-          filesCount: 0
-        }
-        folderMap.set(currentPath, newNode)
-
-        if (index === 0) {
-          folderTree.push(newNode)
-        } else if (parentPath && folderMap.has(parentPath)) {
-          folderMap.get(parentPath)!.children.push(newNode)
-        }
-      }
-      folderMap.get(currentPath)!.filesCount++
-    })
-  })
-
   return {
     success: true,
+    isLiveR2Data,
+    currentPath: pathPrefix,
     totalFiles: files.length,
     files,
-    folderTree
+    subFolders
   }
 })
