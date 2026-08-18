@@ -2,15 +2,15 @@
   <div v-if="files.length > 0" class="mb-8">
     <div class="d-flex align-center justify-space-between mb-4">
       <div class="d-flex align-center">
-        <v-avatar color="primary" variant="tonal" size="38" class="mr-3">
-          <v-icon icon="mdi-file-document-multiple-outline" color="primary" size="22"></v-icon>
+        <v-avatar color="secondary" variant="tonal" size="38" class="mr-3">
+          <v-icon icon="mdi-file-document-multiple-outline" color="secondary" size="22"></v-icon>
         </v-avatar>
         <div>
           <h3 class="text-h6 font-weight-bold font-cinzel">Dokümanlar & Dosyalar</h3>
           <div class="text-caption text-medium-emphasis">Bu kategorideki materyaller ve ses kayıtları</div>
         </div>
       </div>
-      <v-chip size="small" color="primary" variant="tonal" class="font-weight-bold">
+      <v-chip size="small" color="secondary" variant="tonal" class="font-weight-bold">
         {{ files.length }} Dosya
       </v-chip>
     </div>
