@@ -7,13 +7,21 @@
     <v-app-bar flat class="border-b px-4 islamic-card rounded-0" density="comfortable" style="z-index: 10;">
       <v-container class="d-flex align-center max-width-xl pa-0">
         <!-- Logo & Branding -->
-        <div class="d-flex align-center cursor-pointer" @click="selectFolder('')">
-          <v-avatar color="secondary" class="mr-3 elevation-3" size="44" rounded="lg">
-            <v-icon icon="mdi-star-crescent" color="white" size="26"></v-icon>
-          </v-avatar>
-          <div>
-            <h2 class="text-h6 font-weight-bold gradient-text-gold font-cinzel">İlim & Gençlik</h2>
-            <div class="text-caption text-medium-emphasis">Sohbet, Müfredat & Kütüphane</div>
+        <div class="d-flex align-center cursor-pointer mr-3" @click="selectFolder('')">
+          <div class="d-flex align-center bg-white px-3 py-1 rounded-lg elevation-2 mr-3" style="height: 44px;">
+            <img
+              src="/logo.png"
+              alt="Young Professionals Logo"
+              style="height: 34px; width: auto; object-fit: contain;"
+            />
+          </div>
+          <div class="d-none d-md-block">
+            <h2 class="text-subtitle-1 font-weight-bold gradient-text-gold font-cinzel mb-0" style="line-height: 1.2;">
+              İlim & Gençlik
+            </h2>
+            <div class="text-caption text-medium-emphasis" style="font-size: 0.75rem;">
+              Sohbet & Doküman Portalı
+            </div>
           </div>
         </div>
 
@@ -76,53 +84,6 @@
 
     <v-main class="bg-transparent min-vh-100 pb-16" style="position: relative; z-index: 1;">
       <v-container class="max-width-xl pt-8">
-        <!-- Welcoming Islamic Hero Banner -->
-        <v-card class="islamic-hero-banner pa-6 pa-md-8 mb-8 elevation-5" elevation="0">
-          <v-row align="center">
-            <v-col cols="12" md="8">
-              <!-- Bismillah Calligraphy Badge -->
-              <div class="d-flex align-center mb-2">
-                <div class="bismillah-text font-amiri">
-                  بِسْمِ ٱللَّٰهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ
-                </div>
-              </div>
-
-              <h1 class="text-h4 text-md-h3 font-weight-extrabold mb-2 font-cinzel">
-                İlim, İrfan & <span class="gradient-text-gold">Gençlik Portalı</span>
-              </h1>
-              <p class="text-body-1 text-medium-emphasis mb-4" style="max-width: 680px; line-height: 1.6;">
-                Haftalık sohbet müfredatı, temel kitap tavsiyeleri, tarihi gezi rotaları, interaktif ünite çalışmaları ve güncel duyurularla zenginleştirilmiş ilim meclisi.
-              </p>
-
-              <!-- 5 Main Meta Category Quick Chips -->
-              <div class="d-flex align-center flex-wrap gap-2">
-                <v-chip
-                  v-for="cat in mainMetaCategories"
-                  :key="cat.name"
-                  size="small"
-                  variant="flat"
-                  :color="selectedFolder.includes(cat.name) ? 'secondary' : 'primary'"
-                  class="cursor-pointer font-weight-bold elevation-1"
-                  @click="selectFolder(cat.path)"
-                >
-                  <v-icon :icon="cat.icon" start size="small"></v-icon>
-                  {{ cat.name }}
-                </v-chip>
-              </div>
-            </v-col>
-
-            <v-col cols="12" md="4" class="text-md-right">
-              <v-card class="islamic-card pa-4 text-center d-inline-block w-100" style="max-width: 280px;">
-                <v-avatar color="secondary" size="56" class="mb-2 elevation-2">
-                  <v-icon icon="mdi-library-shelves" size="32" color="white"></v-icon>
-                </v-avatar>
-                <div class="text-h4 font-weight-bold text-secondary font-cinzel">{{ totalFilesCount }}</div>
-                <div class="text-caption font-weight-bold text-medium-emphasis">Mevcut Doküman & Dosya</div>
-              </v-card>
-            </v-col>
-          </v-row>
-        </v-card>
-
         <!-- Mobile Search Bar -->
         <v-text-field
           v-model="searchQuery"
@@ -139,15 +100,6 @@
 
         <!-- Main Content Area -->
         <v-row>
-          <!-- Left Sidebar Folder Tree -->
-          <v-col cols="12" md="4" lg="3">
-            <FolderTree
-              :folder-tree="subFoldersList"
-              :selected-path="selectedFolder"
-              :total-files="totalFilesCount"
-              @select-folder="selectFolder"
-            />
-          </v-col>
 
           <!-- Right Content Area -->
           <v-col cols="12" md="8" lg="9">

@@ -53,7 +53,7 @@ function getItemIcon(item: any): string {
 const breadcrumbItems = computed<BreadcrumbItem[]>(() => {
   const items: BreadcrumbItem[] = [
     {
-      title: 'Alle Sohbets',
+      title: 'Kategoriler',
       path: '',
       icon: 'mdi-folder-home-outline',
       disabled: !props.currentPath
