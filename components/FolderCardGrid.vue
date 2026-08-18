@@ -10,9 +10,14 @@
         lg="6"
       >
         <v-card
-          class="islamic-card pa-5 cursor-pointer elevation-3 d-flex flex-column justify-space-between h-100 position-relative"
+          link
+          :ripple="{ class: 'text-secondary' }"
+          role="button"
+          tabindex="0"
+          class="islamic-card pa-5 cursor-pointer elevation-3 d-flex flex-column justify-space-between h-100 position-relative mobile-touch-card"
           elevation="0"
           @click="$emit('select-folder', folder.fullPath)"
+          @keydown.enter="$emit('select-folder', folder.fullPath)"
         >
           <div class="card-accent-bar"></div>
 
@@ -110,6 +115,12 @@ function getCategoryDescription(name: string): string {
 </script>
 
 <style scoped>
+.mobile-touch-card {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: rgba(212, 175, 55, 0.2);
+  cursor: pointer !important;
+}
+
 .islamic-card:hover .v-avatar {
   transform: scale(1.08) rotate(3deg);
   transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
