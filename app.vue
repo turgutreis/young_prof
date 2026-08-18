@@ -37,20 +37,6 @@
 
     <v-main class="bg-transparent min-vh-100 pb-16" style="position: relative; z-index: 1;">
       <v-container class="max-width-xl pt-8">
-        <!-- Mobile Search Bar -->
-        <v-text-field
-          v-model="searchQuery"
-          placeholder="Konu, sohbet veya doküman ara..."
-          prepend-inner-icon="mdi-magnify"
-          variant="solo"
-          flat
-          density="compact"
-          hide-details
-          clearable
-          rounded="pill"
-          class="mb-6 d-sm-none elevation-2"
-        ></v-text-field>
-
         <!-- Main Content Area -->
         <v-row>
 
