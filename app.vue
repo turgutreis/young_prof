@@ -1,18 +1,19 @@
 <template>
   <v-app>
-    <!-- Background Ambient Glow -->
+    <!-- Background Ambient Glow & Girih Islamic Geometry -->
     <div class="bg-ambient-glow"></div>
 
     <!-- Top Navigation Bar -->
-    <v-app-bar flat class="border-b px-4 warm-card rounded-0" density="comfortable" style="z-index: 10;">
+    <v-app-bar flat class="border-b px-4 islamic-card rounded-0" density="comfortable" style="z-index: 10;">
       <v-container class="d-flex align-center max-width-xl pa-0">
+        <!-- Logo & Branding -->
         <div class="d-flex align-center cursor-pointer" @click="selectFolder('')">
-          <v-avatar color="amber-darken-1" class="mr-3 elevation-3" size="42">
-            <v-icon icon="mdi-book-heart-outline" color="white" size="24"></v-icon>
+          <v-avatar color="secondary" class="mr-3 elevation-3" size="44" rounded="lg">
+            <v-icon icon="mdi-star-crescent" color="white" size="26"></v-icon>
           </v-avatar>
           <div>
-            <h2 class="text-h6 font-weight-bold gradient-text-warm">Sohbet & Podcast Archiv</h2>
-            <div class="text-caption text-medium-emphasis">Cloudflare R2 Bibliothek</div>
+            <h2 class="text-h6 font-weight-bold gradient-text-gold font-cinzel">İlim & Gençlik</h2>
+            <div class="text-caption text-medium-emphasis">Sohbet, Müfredat & Kütüphane</div>
           </div>
         </div>
 
@@ -21,7 +22,7 @@
         <!-- Search Input -->
         <v-text-field
           v-model="searchQuery"
-          placeholder="Sohbet oder Datei suchen..."
+          placeholder="Konu, sohbet veya doküman ara..."
           prepend-inner-icon="mdi-magnify"
           variant="solo"
           flat
@@ -29,7 +30,7 @@
           hide-details
           clearable
           rounded="pill"
-          class="max-width-320 mx-4 d-none d-sm-flex elevation-1"
+          class="max-width-340 mx-4 d-none d-sm-flex elevation-1"
         ></v-text-field>
 
         <!-- Filter Audio Only Toggle -->
@@ -42,7 +43,7 @@
           prepend-icon="mdi-headphones"
           @click="audioOnlyFilter = !audioOnlyFilter"
         >
-          {{ audioOnlyFilter ? 'Nur Audio' : 'Alle Dateien' }}
+          {{ audioOnlyFilter ? 'Yalnızca Ses' : 'Tüm Dosyalar' }}
         </v-btn>
 
         <!-- View Mode Switch -->
@@ -50,7 +51,7 @@
           v-model="viewMode"
           mandatory
           density="compact"
-          color="primary"
+          color="secondary"
           variant="flat"
           rounded="pill"
           class="mr-3 border"
@@ -63,7 +64,7 @@
         <v-btn
           icon
           variant="tonal"
-          color="primary"
+          color="secondary"
           size="small"
           rounded="circle"
           @click="toggleTheme"
@@ -75,50 +76,48 @@
 
     <v-main class="bg-transparent min-vh-100 pb-16" style="position: relative; z-index: 1;">
       <v-container class="max-width-xl pt-8">
-        <!-- Welcoming Hero Banner -->
-        <v-card class="hero-warm-banner pa-6 pa-md-8 mb-8 elevation-4" elevation="0">
+        <!-- Welcoming Islamic Hero Banner -->
+        <v-card class="islamic-hero-banner pa-6 pa-md-8 mb-8 elevation-5" elevation="0">
           <v-row align="center">
             <v-col cols="12" md="8">
-              <div class="d-flex align-center flex-wrap gap-2 mb-3">
-                <v-chip color="primary" variant="flat" size="small" class="font-weight-bold">
-                  <v-icon icon="mdi-cloud-check-outline" start size="small"></v-icon> Cloudflare R2 Live-Storage
-                </v-chip>
-                <v-chip v-if="audioOnlyFilter" color="secondary" variant="flat" size="small" class="font-weight-bold">
-                  <v-icon icon="mdi-headphones" start size="small"></v-icon> Audio-Filter Aktiv
-                </v-chip>
+              <!-- Bismillah Calligraphy Badge -->
+              <div class="d-flex align-center mb-2">
+                <div class="bismillah-text font-amiri">
+                  بِسْمِ ٱللَّٰهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ
+                </div>
               </div>
 
-              <h1 class="text-h4 text-md-h3 font-weight-extrabold mb-3">
-                Sohbets <span class="gradient-text-warm">Hören & Mitlesen</span>
+              <h1 class="text-h4 text-md-h3 font-weight-extrabold mb-2 font-cinzel">
+                İlim, İrfan & <span class="gradient-text-gold">Gençlik Portalı</span>
               </h1>
-              <p class="text-body-1 text-medium-emphasis mb-4" style="max-width: 650px;">
-                Wähle eine Kategorie oder einen Ordner aus, um die Unterlagen und Audios direkt im Browser anzusehen oder herunterzuladen.
+              <p class="text-body-1 text-medium-emphasis mb-4" style="max-width: 680px; line-height: 1.6;">
+                Haftalık sohbet müfredatı, temel kitap tavsiyeleri, tarihi gezi rotaları, interaktif ünite çalışmaları ve güncel duyurularla zenginleştirilmiş ilim meclisi.
               </p>
 
-              <!-- Dynamic Top-Level Category Pills from R2 -->
-              <div v-if="topCategories.length > 0" class="d-flex align-center flex-wrap gap-2">
+              <!-- 5 Main Meta Category Quick Chips -->
+              <div class="d-flex align-center flex-wrap gap-2">
                 <v-chip
-                  v-for="cat in topCategories"
-                  :key="cat.fullPath"
+                  v-for="cat in mainMetaCategories"
+                  :key="cat.name"
                   size="small"
                   variant="flat"
-                  color="primary"
-                  class="cursor-pointer font-weight-bold"
-                  @click="selectFolder(cat.fullPath)"
+                  :color="selectedFolder.includes(cat.name) ? 'secondary' : 'primary'"
+                  class="cursor-pointer font-weight-bold elevation-1"
+                  @click="selectFolder(cat.path)"
                 >
-                  <v-icon icon="mdi-folder-outline" start size="small"></v-icon>
-                  {{ cat.name }} ({{ cat.filesCount }})
+                  <v-icon :icon="cat.icon" start size="small"></v-icon>
+                  {{ cat.name }}
                 </v-chip>
               </div>
             </v-col>
 
             <v-col cols="12" md="4" class="text-md-right">
-              <v-card class="warm-card pa-4 text-center d-inline-block w-100" style="max-width: 280px;">
-                <v-avatar color="primary" size="56" class="mb-2 elevation-2">
-                  <v-icon icon="mdi-folder-text-outline" size="32" color="white"></v-icon>
+              <v-card class="islamic-card pa-4 text-center d-inline-block w-100" style="max-width: 280px;">
+                <v-avatar color="secondary" size="56" class="mb-2 elevation-2">
+                  <v-icon icon="mdi-library-shelves" size="32" color="white"></v-icon>
                 </v-avatar>
-                <div class="text-h4 font-weight-bold primary--text">{{ totalFilesCount }}</div>
-                <div class="text-caption font-weight-semibold text-medium-emphasis">Dateien in dieser Ebene</div>
+                <div class="text-h4 font-weight-bold text-secondary font-cinzel">{{ totalFilesCount }}</div>
+                <div class="text-caption font-weight-bold text-medium-emphasis">Mevcut Doküman & Dosya</div>
               </v-card>
             </v-col>
           </v-row>
@@ -127,7 +126,7 @@
         <!-- Mobile Search Bar -->
         <v-text-field
           v-model="searchQuery"
-          placeholder="Sohbet oder Datei suchen..."
+          placeholder="Konu, sohbet veya doküman ara..."
           prepend-inner-icon="mdi-magnify"
           variant="solo"
           flat
@@ -158,9 +157,12 @@
               @select-folder="selectFolder"
             />
 
+            <!-- Duyurular Board (Visible on Root or when Duyurular selected) -->
+            <DuyurularBoard v-if="selectedFolder.toUpperCase().includes('DUYURU')" />
+
             <!-- Loading Spinner -->
             <div v-if="pending" class="d-flex justify-center py-16">
-              <v-progress-circular indeterminate color="primary" size="64" width="6"></v-progress-circular>
+              <v-progress-circular indeterminate color="secondary" size="64" width="6"></v-progress-circular>
             </div>
 
             <template v-else>
@@ -215,13 +217,16 @@ const previewModalOpen = ref(false)
 const selectedPreviewFile = ref<SohbetFile | null>(null)
 const activeTrack = ref<SohbetFile | null>(null)
 
-// 1. Fetch Root Categories for Hero pills
-const { data: rootData } = await useFetch('/api/sohbets', {
-  query: { path: '' }
-})
-const topCategories = computed<FolderNode[]>(() => rootData.value?.subFolders || [])
+// 5 Main Meta Categories
+const mainMetaCategories = [
+  { name: 'MÜFREDAT', path: 'Müfredat/', icon: 'mdi-book-open-page-variant-outline' },
+  { name: 'KİTAP TAVSİYELERİ', path: 'KİTAP TAVSİYELERİ/', icon: 'mdi-book-heart-outline' },
+  { name: 'GEZİ GÜZERGAHLARI', path: 'GEZİ GÜZERGAHLARI/', icon: 'mdi-map-marker-path' },
+  { name: 'AKTİVİTELER / ÜNİTE ÇALIŞMALARI', path: 'AKTİVİTELER / ÜNİTE ÇALIŞMALARI/', icon: 'mdi-puzzle-star-outline' },
+  { name: 'DUYURULAR', path: 'DUYURULAR/', icon: 'mdi-bullhorn-outline' }
+]
 
-// 2. Fetch current level Sohbets & Subfolders from Cloudflare R2
+// Fetch current level Sohbets & Subfolders dynamically from Cloudflare R2
 const { data, pending } = await useFetch('/api/sohbets', {
   query: computed(() => ({
     search: searchQuery.value,
@@ -258,8 +263,8 @@ function playAudio(file: SohbetFile) {
   margin: 0 auto;
 }
 
-.max-width-320 {
-  max-width: 320px;
+.max-width-340 {
+  max-width: 340px;
 }
 
 .gap-2 {

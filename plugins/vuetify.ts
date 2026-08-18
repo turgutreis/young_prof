@@ -2,36 +2,36 @@ import { createVuetify, type ThemeDefinition } from 'vuetify'
 import * as components from 'vuetify/components'
 import * as directives from 'vuetify/directives'
 
-const darkWarmTheme: ThemeDefinition = {
+const islamicDarkTheme: ThemeDefinition = {
   dark: true,
   colors: {
-    background: '#0D0F18',
-    surface: '#161928',
-    'surface-variant': '#202438',
-    primary: '#F59E0B', // Warm Amber Gold
-    'primary-darken-1': '#D97706',
-    secondary: '#10B981', // Emerald Teal
-    accent: '#EC4899', // Warm Rose
+    background: '#07100D', // Deep spiritual emerald-onyx
+    surface: '#0F1E19', // Rich dark emerald surface
+    'surface-variant': '#162C24',
+    primary: '#10B981', // Glowing Emerald
+    'primary-darken-1': '#059669',
+    secondary: '#D4AF37', // Ottoman Gold / Altın
+    accent: '#06B6D4', // Turquoise / Firuze
     error: '#F43F5E',
-    info: '#3B82F6',
+    info: '#38BDF8',
     success: '#10B981',
     warning: '#F59E0B'
   }
 }
 
-const lightWarmTheme: ThemeDefinition = {
+const islamicLightTheme: ThemeDefinition = {
   dark: false,
   colors: {
-    background: '#FAF8F5', // Soft Warm Cream
+    background: '#FBF8F2', // Warm parchment cream
     surface: '#FFFFFF',
-    'surface-variant': '#F3EFEA',
-    primary: '#D97706', // Rich Gold Amber
-    'primary-darken-1': '#B45309',
-    secondary: '#059669', // Emerald
-    accent: '#E11D48',
+    'surface-variant': '#F2ECE1', // Antique gold parchment
+    primary: '#0D5C46', // Noble Ottoman Emerald
+    'primary-darken-1': '#094232',
+    secondary: '#B45309', // Warm Amber Gold
+    accent: '#0284C7',
     error: '#E11D48',
-    info: '#2563EB',
-    success: '#059669',
+    info: '#0284C7',
+    success: '#0D5C46',
     warning: '#D97706'
   }
 }
@@ -44,8 +44,8 @@ export default defineNuxtPlugin((nuxtApp) => {
     theme: {
       defaultTheme: 'dark',
       themes: {
-        dark: darkWarmTheme,
-        light: lightWarmTheme
+        dark: islamicDarkTheme,
+        light: islamicLightTheme
       }
     }
   })

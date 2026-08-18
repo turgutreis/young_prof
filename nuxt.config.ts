@@ -22,21 +22,21 @@ export default defineNuxtConfig({
     r2SecretAccessKey: process.env.R2_SECRET_ACCESS_KEY || '',
     r2PublicUrl: process.env.R2_PUBLIC_URL || '',
     public: {
-      appName: 'Sohbet Archiv & PDF Bibliothek'
+      appName: 'İlim & Gençlik Portalı - Sohbet Archiv'
     }
   },
   app: {
     head: {
-      title: 'Sohbet Archiv - PDF Bibliothek & Themen',
+      title: 'İlim & Gençlik Portalı - Sohbet, Müfredat ve Kitap Kitaplığı',
       meta: [
         { charset: 'utf-8' },
         { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-        { name: 'description', content: 'Online Plattform für Sohbet-PDFs, Unterrichtsmaterialien und Themenbibliotheken aus Cloudflare R2.' }
+        { name: 'description', content: 'Müfredat dersleri, sohbet PDFleri, ses kayıtları, kitap tavsiyeleri ve gezi rehberleri içeren İslami İlim ve Gençlik Portalı.' }
       ],
       link: [
         { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
         { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
-        { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap' }
+        { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Cinzel:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap' }
       ]
     }
   }
