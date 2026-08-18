@@ -157,7 +157,7 @@
               @select-folder="selectFolder"
             />
 
-            <!-- Duyurular Board (Visible on Root or when Duyurular selected) -->
+            <!-- Duyurular Board (Visible when Duyurular selected) -->
             <DuyurularBoard v-if="selectedFolder.toUpperCase().includes('DUYURU')" />
 
             <!-- Loading Spinner -->
@@ -166,19 +166,45 @@
             </div>
 
             <template v-else>
-              <!-- Category / Subfolder Cards Grid -->
+              <!-- Category / Subfolder Cards Grid (When subfolders exist) -->
               <FolderCardGrid
+                v-if="subFoldersList.length > 0"
                 :sub-folders="subFoldersList"
                 @select-folder="selectFolder"
               />
 
-              <!-- PDF & Podcast Files Grid / Table -->
+              <!-- PDF & Podcast Files Grid / Table (When files exist) -->
               <PdfCardGrid
+                v-if="filesList.length > 0"
                 :files="filesList"
                 :view-mode="viewMode"
                 @preview-file="openPreview"
                 @play-audio="playAudio"
               />
+
+              <!-- Truly Empty State (Only when NEITHER subfolders NOR files exist) -->
+              <v-card
+                v-if="subFoldersList.length === 0 && filesList.length === 0"
+                class="islamic-card text-center pa-12 elevation-2"
+              >
+                <v-avatar color="secondary" variant="tonal" size="72" class="mb-4">
+                  <v-icon icon="mdi-folder-search-outline" size="40" color="secondary"></v-icon>
+                </v-avatar>
+                <h3 class="text-h6 font-weight-bold mb-2">Henüz İçerik Bulunmuyor</h3>
+                <p class="text-body-2 text-medium-emphasis mb-4">
+                  Bu klasörde henüz doküman veya alt kategori bulunmamaktadır.
+                </p>
+                <v-btn
+                  color="secondary"
+                  variant="flat"
+                  size="small"
+                  rounded="pill"
+                  prepend-icon="mdi-arrow-left"
+                  @click="selectFolder('')"
+                >
+                  Ana Sayfaya Dön
+                </v-btn>
+              </v-card>
             </template>
           </v-col>
         </v-row>

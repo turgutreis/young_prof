@@ -1,18 +1,22 @@
 <template>
-  <div>
-    <!-- Empty State -->
-    <v-card v-if="files.length === 0" class="warm-card text-center pa-12 elevation-2">
-      <v-avatar color="primary" variant="tonal" size="80" class="mb-4">
-        <v-icon icon="mdi-file-search-outline" size="48" color="primary"></v-icon>
-      </v-avatar>
-      <h3 class="text-h5 font-weight-bold mb-2">Keine Dateien in diesem Ordner</h3>
-      <p class="text-body-1 text-medium-emphasis mb-0">
-        In diesem Ordner befinden sich Unterkategorien oder noch keine direkten Dateien.
-      </p>
-    </v-card>
+  <div v-if="files.length > 0" class="mb-8">
+    <div class="d-flex align-center justify-space-between mb-4">
+      <div class="d-flex align-center">
+        <v-avatar color="primary" variant="tonal" size="38" class="mr-3">
+          <v-icon icon="mdi-file-document-multiple-outline" color="primary" size="22"></v-icon>
+        </v-avatar>
+        <div>
+          <h3 class="text-h6 font-weight-bold font-cinzel">Dokümanlar & Dosyalar</h3>
+          <div class="text-caption text-medium-emphasis">Bu kategorideki materyaller ve ses kayıtları</div>
+        </div>
+      </div>
+      <v-chip size="small" color="primary" variant="tonal" class="font-weight-bold">
+        {{ files.length }} Dosya
+      </v-chip>
+    </div>
 
     <!-- Grid View -->
-    <v-row v-else-if="viewMode === 'grid'">
+    <v-row v-if="viewMode === 'grid'">
       <v-col
         v-for="file in files"
         :key="file.key"
@@ -21,7 +25,7 @@
         md="6"
         lg="4"
       >
-        <v-card class="warm-card d-flex flex-column h-100 pa-5 elevation-2" elevation="0">
+        <v-card class="islamic-card d-flex flex-column h-100 pa-5 elevation-2" elevation="0">
           <div class="card-accent-bar"></div>
 
           <!-- Top Badges -->
@@ -32,10 +36,10 @@
 
             <div class="d-flex flex-column align-end gap-1">
               <v-chip size="x-small" :color="getFileBadgeColor(file)" variant="flat" class="font-weight-bold text-uppercase">
-                {{ file.fileType || 'Datei' }}
+                {{ file.fileType || 'Dosya' }}
               </v-chip>
               <v-chip v-if="file.hasAudio" size="x-small" color="primary" variant="tonal" class="font-weight-bold">
-                <v-icon icon="mdi-headphones" start size="x-small"></v-icon> {{ file.durationLabel || 'Audio' }}
+                <v-icon icon="mdi-headphones" start size="x-small"></v-icon> {{ file.durationLabel || 'Ses Kaydı' }}
               </v-chip>
             </div>
           </div>
@@ -78,7 +82,7 @@
               prepend-icon="mdi-play-circle"
               @click="$emit('play-audio', file)"
             >
-              Anhören
+              Dinle
             </v-btn>
 
             <!-- Preview Button (For PDF / Images) -->
@@ -92,7 +96,7 @@
               prepend-icon="mdi-eye-outline"
               @click="$emit('preview-file', file)"
             >
-              Vorschau
+              Göz At
             </v-btn>
 
             <v-btn
@@ -103,7 +107,7 @@
               icon="mdi-download"
               :href="file.downloadUrl"
               target="_blank"
-              title="Datei Herunterladen"
+              title="İndir"
             ></v-btn>
 
             <v-btn
@@ -111,7 +115,7 @@
               size="small"
               rounded="circle"
               icon="mdi-share-variant-outline"
-              title="Link kopieren"
+              title="Bağlantıyı Kopyala"
               @click="copyLink(file)"
             ></v-btn>
           </div>
@@ -120,15 +124,15 @@
     </v-row>
 
     <!-- Table View -->
-    <v-card v-else class="warm-card pa-0 elevation-2" elevation="0">
+    <v-card v-else class="islamic-card pa-0 elevation-2" elevation="0">
       <v-table class="bg-transparent">
         <thead>
           <tr>
-            <th class="font-weight-bold">Titel & Pfad</th>
+            <th class="font-weight-bold">Başlık & Konum</th>
             <th class="font-weight-bold">Format</th>
-            <th class="font-weight-bold">Größe</th>
-            <th class="font-weight-bold">Datum</th>
-            <th class="text-right font-weight-bold">Aktionen</th>
+            <th class="font-weight-bold">Boyut</th>
+            <th class="font-weight-bold">Tarih</th>
+            <th class="text-right font-weight-bold">İşlemler</th>
           </tr>
         </thead>
         <tbody>
@@ -150,7 +154,7 @@
                   {{ file.fileType }}
                 </v-chip>
                 <v-chip v-if="file.hasAudio" size="x-small" color="primary" variant="tonal" class="font-weight-bold">
-                  Audio
+                  Ses
                 </v-chip>
               </div>
             </td>
@@ -165,7 +169,7 @@
                 color="primary"
                 rounded="circle"
                 class="mr-1"
-                title="Audio Anhören"
+                title="Ses Dinle"
                 @click="$emit('play-audio', file)"
               ></v-btn>
               <v-btn
@@ -176,7 +180,7 @@
                 color="secondary"
                 rounded="circle"
                 class="mr-1"
-                title="Vorschau"
+                title="Önizle"
                 @click="$emit('preview-file', file)"
               ></v-btn>
               <v-btn
@@ -197,7 +201,7 @@
     <!-- Copy Snackbar Notification -->
     <v-snackbar v-model="snackbar" timeout="3000" color="success" location="bottom right" rounded="pill">
       <v-icon icon="mdi-check-circle-outline" class="mr-2"></v-icon>
-      Download-Link kopiert!
+      Bağlantı panoya kopyalandı!
     </v-snackbar>
   </div>
 </template>
@@ -245,7 +249,7 @@ function formatFileSize(bytes: number): string {
 function formatDate(dateStr: string): string {
   if (!dateStr) return ''
   const date = new Date(dateStr)
-  return date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  return date.toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
 function copyLink(file: SohbetFile) {
