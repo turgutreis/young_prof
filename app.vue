@@ -15,34 +15,12 @@
               style="height: 34px; width: auto; object-fit: contain;"
             />
           </div>
-          <div class="d-none d-md-block">
-            <h2 class="text-subtitle-1 font-weight-bold gradient-text-gold font-cinzel mb-0" style="line-height: 1.2;">
-              İlim & Gençlik
-            </h2>
-            <div class="text-caption text-medium-emphasis" style="font-size: 0.75rem;">
-              Sohbet & Doküman Portalı
-            </div>
-          </div>
         </div>
 
         <v-spacer></v-spacer>
 
-        <!-- Search Input -->
-        <v-text-field
-          v-model="searchQuery"
-          placeholder="Konu, sohbet veya doküman ara..."
-          prepend-inner-icon="mdi-magnify"
-          variant="solo"
-          flat
-          density="compact"
-          hide-details
-          clearable
-          rounded="pill"
-          class="max-width-340 mx-4 d-none d-sm-flex elevation-1"
-        ></v-text-field>
-
         <!-- Filter Audio Only Toggle -->
-        <v-btn
+        <!-- <v-btn
           :color="audioOnlyFilter ? 'primary' : 'surface-variant'"
           :variant="audioOnlyFilter ? 'flat' : 'tonal'"
           size="small"
@@ -52,33 +30,8 @@
           @click="audioOnlyFilter = !audioOnlyFilter"
         >
           {{ audioOnlyFilter ? 'Yalnızca Ses' : 'Tüm Dosyalar' }}
-        </v-btn>
-
-        <!-- View Mode Switch -->
-        <v-btn-toggle
-          v-model="viewMode"
-          mandatory
-          density="compact"
-          color="secondary"
-          variant="flat"
-          rounded="pill"
-          class="mr-3 border"
-        >
-          <v-btn value="grid" icon="mdi-view-grid-outline" size="small"></v-btn>
-          <v-btn value="table" icon="mdi-format-list-bulleted" size="small"></v-btn>
-        </v-btn-toggle>
-
+        </v-btn> -->
         <!-- Theme Toggle Button -->
-        <v-btn
-          icon
-          variant="tonal"
-          color="secondary"
-          size="small"
-          rounded="circle"
-          @click="toggleTheme"
-        >
-          <v-icon :icon="theme.global.name.value === 'dark' ? 'mdi-weather-sunny' : 'mdi-weather-night'"></v-icon>
-        </v-btn>
       </v-container>
     </v-app-bar>
 

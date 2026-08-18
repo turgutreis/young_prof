@@ -1,20 +1,5 @@
 <template>
   <div v-if="subFolders.length > 0" class="mb-8">
-    <div class="d-flex align-center justify-space-between mb-4">
-      <div class="d-flex align-center">
-        <v-avatar color="secondary" variant="tonal" size="38" class="mr-3">
-          <v-icon icon="mdi-star-crescent" color="secondary" size="22"></v-icon>
-        </v-avatar>
-        <div>
-          <h3 class="text-h6 font-weight-bold font-cinzel">Kategoriler & İlim Meclisleri</h3>
-          <div class="text-caption text-medium-emphasis">Konuları ve dokümanları keşfetmek için bir kategori seçin</div>
-        </div>
-      </div>
-      <v-chip size="small" color="secondary" variant="tonal" class="font-weight-bold">
-        {{ subFolders.length }} Kategori
-      </v-chip>
-    </div>
-
     <v-row>
       <v-col
         v-for="folder in subFolders"

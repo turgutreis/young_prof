@@ -3,7 +3,7 @@ import * as components from 'vuetify/components'
 import * as directives from 'vuetify/directives'
 
 const islamicDarkTheme: ThemeDefinition = {
-  dark: true,
+  dark: false,
   colors: {
     background: '#07100D', // Deep spiritual emerald-onyx
     surface: '#0F1E19', // Rich dark emerald surface
@@ -42,7 +42,7 @@ export default defineNuxtPlugin((nuxtApp) => {
     components,
     directives,
     theme: {
-      defaultTheme: 'dark',
+      defaultTheme: 'light',
       themes: {
         dark: islamicDarkTheme,
         light: islamicLightTheme
