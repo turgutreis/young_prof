@@ -8,8 +8,7 @@ export interface SohbetFile {
   lastModified: string
   downloadUrl: string
   previewUrl?: string
-  category: string
-  subCategory: string
+  fileType: 'pdf' | 'audio' | 'image' | 'doc' | 'other'
   hasAudio: boolean
   hasPdf: boolean
   audioUrl?: string
@@ -20,61 +19,34 @@ export interface SohbetFile {
 export interface FolderNode {
   name: string
   fullPath: string
-  children: FolderNode[]
   filesCount: number
-  icon?: string
 }
 
-// Fallback dataset used ONLY if R2 API keys are not in .env
-const MOCK_FILES: SohbetFile[] = [
-  {
-    key: 'sohbets/INT - SYF - GENCLIK MFRDT/A - NAMAZ IBADETİ VE KAZANDIRDIKLARI/01_Namazin_Onemi_ve_Ibadet.pdf',
-    name: '01 - Namazın Önemi ve İbadetin Kazandırdıkları.pdf',
-    folderPath: 'sohbets/INT - SYF - GENCLIK MFRDT/A - NAMAZ IBADETİ VE KAZANDIRDIKLARI/',
-    size: 2450000,
-    lastModified: '2026-07-28T14:30:00Z',
-    downloadUrl: '/api/sohbets/stream?download=true&key=' + encodeURIComponent('sohbets/INT - SYF - GENCLIK MFRDT/A - NAMAZ IBADETİ VE KAZANDIRDIKLARI/01_Namazin_Onemi_ve_Ibadet.pdf'),
-    previewUrl: '/api/sohbets/stream?key=' + encodeURIComponent('sohbets/INT - SYF - GENCLIK MFRDT/A - NAMAZ IBADETİ VE KAZANDIRDIKLARI/01_Namazin_Onemi_ve_Ibadet.pdf'),
-    category: 'INT - SYF - GENCLIK MFRDT',
-    subCategory: 'A - NAMAZ IBADETİ VE KAZANDIRDIKLARI',
-    hasPdf: true,
-    hasAudio: true,
-    audioUrl: 'https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=lofi-study-112191.mp3',
-    durationLabel: '14:20 Min.'
-  },
-  {
-    key: 'sohbets/Music/01_Testhalb_Audio.mp3',
-    name: '01 - Testhalb Audio Sohbet.mp3',
-    folderPath: 'sohbets/Music/',
-    size: 5200000,
-    lastModified: '2026-08-06T10:00:00Z',
-    downloadUrl: '/api/sohbets/stream?download=true&key=' + encodeURIComponent('sohbets/Music/01_Testhalb_Audio.mp3'),
-    category: 'Music',
-    subCategory: 'Audio',
-    hasPdf: false,
-    hasAudio: true,
-    audioUrl: 'https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=lofi-study-112191.mp3',
-    durationLabel: '12:30 Min.'
-  }
-]
+function getFileType(fileName: string): 'pdf' | 'audio' | 'image' | 'doc' | 'other' {
+  const ext = fileName.split('.').pop()?.toLowerCase() || ''
+  if (ext === 'pdf') return 'pdf'
+  if (['mp3', 'm4a', 'wav', 'ogg', 'aac'].includes(ext)) return 'audio'
+  if (['png', 'jpg', 'jpeg', 'webp', 'svg'].includes(ext)) return 'image'
+  if (['doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'txt'].includes(ext)) return 'doc'
+  return 'other'
+}
 
 export default defineEventHandler(async (event) => {
   const query = getQuery(event)
   const config = useRuntimeConfig()
   
   const search = (query.search as string || '').toLowerCase().trim()
-  let rawPath = (query.path as string || '').trim()
+  let currentPath = (query.path as string || '').trim().normalize('NFC')
   const audioOnlyFilter = query.audioOnly === 'true'
 
-  if (rawPath && !rawPath.endsWith('/')) {
-    rawPath += '/'
+  if (currentPath && !currentPath.endsWith('/')) {
+    currentPath += '/'
   }
 
-  let files: SohbetFile[] = []
-  let subFolders: FolderNode[] = []
+  let allObjects: any[] = []
   let isLiveR2Data = false
 
-  // 1. LIVE CLOUDFLARE R2 QUERY WITH ROBUST PREFIX MATCHING
+  // 1. DYNAMICALLY FETCH ALL OBJECTS FROM CLOUDFLARE R2 BUCKET
   if (config.r2AccessKeyId && config.r2SecretAccessKey) {
     try {
       const s3Client = new S3Client({
@@ -86,202 +58,113 @@ export default defineEventHandler(async (event) => {
         }
       })
 
-      // Candidates to try in R2
-      const candidatePrefixes: string[] = []
-      if (rawPath) {
-        candidatePrefixes.push(rawPath)
-        if (!rawPath.startsWith('sohbets/')) {
-          candidatePrefixes.push('sohbets/' + rawPath)
-        }
-      } else {
-        candidatePrefixes.push('sohbets/', '')
-      }
+      let isTruncated = true
+      let continuationToken: string | undefined = undefined
 
-      let response: any = null
-      let matchedPrefix = rawPath
-
-      for (const prefixCandidate of candidatePrefixes) {
-        const command = new ListObjectsV2Command({
+      while (isTruncated) {
+        const command: ListObjectsV2Command = new ListObjectsV2Command({
           Bucket: config.r2BucketName,
-          Prefix: prefixCandidate,
-          Delimiter: '/'
+          ContinuationToken: continuationToken
         })
 
-        const res = await s3Client.send(command)
-        if ((res.CommonPrefixes && res.CommonPrefixes.length > 0) || (res.Contents && res.Contents.length > 0)) {
-          response = res
-          matchedPrefix = prefixCandidate
-          break
+        const response = await s3Client.send(command)
+        if (response.Contents) {
+          allObjects.push(...response.Contents)
         }
-      }
 
-      // If candidates failed, try listing root to get everything under sohbets/
-      if (!response) {
-        const command = new ListObjectsV2Command({
-          Bucket: config.r2BucketName,
-          Prefix: 'sohbets/',
-          Delimiter: '/'
-        })
-        response = await s3Client.send(command)
-        matchedPrefix = 'sohbets/'
+        isTruncated = !!response.IsTruncated
+        continuationToken = response.NextContinuationToken
       }
 
       isLiveR2Data = true
-
-      // Parse Subfolders (CommonPrefixes)
-      if (response && response.CommonPrefixes) {
-        subFolders = response.CommonPrefixes
-          .filter((cp: any) => cp.Prefix)
-          .map((cp: any) => {
-            const fullPath = cp.Prefix!
-            const cleanPath = fullPath.replace(/\/$/, '')
-            const folderName = cleanPath.split('/').pop() || cleanPath
-
-            return {
-              name: folderName,
-              fullPath,
-              children: [],
-              filesCount: 0
-            }
-          })
-      }
-
-      // Parse Files (Contents)
-      if (response && response.Contents) {
-        const pdfMap = new Map<string, any>()
-        const audioMap = new Map<string, any>()
-
-        response.Contents.forEach((item: any) => {
-          if (!item.Key || item.Key === matchedPrefix) return
-          const ext = item.Key.substring(item.Key.lastIndexOf('.')).toLowerCase()
-          const baseKey = item.Key.substring(0, item.Key.lastIndexOf('.'))
-
-          if (ext === '.pdf') {
-            pdfMap.set(baseKey, item)
-          } else if (['.mp3', '.m4a', '.wav', '.ogg'].includes(ext)) {
-            audioMap.set(baseKey, item)
-          }
-        })
-
-        const processedKeys = new Set<string>()
-
-        pdfMap.forEach((item, baseKey) => {
-          processedKeys.add(baseKey)
-          const key = item.Key!
-          const parts = key.split('/')
-          const fileName = parts[parts.length - 1]
-          const folderPath = key.substring(0, key.lastIndexOf('/') + 1)
-          
-          const category = parts.length > 1 ? parts[0] : 'Genel'
-          const subCategory = parts.length > 2 ? parts[1] : 'Genel'
-
-          const matchingAudioItem = audioMap.get(baseKey)
-          const hasAudio = !!matchingAudioItem
-          const audioUrl = matchingAudioItem ? `/api/sohbets/stream?key=${encodeURIComponent(matchingAudioItem.Key!)}` : undefined
-
-          files.push({
-            key,
-            name: fileName,
-            folderPath,
-            size: item.Size || 0,
-            lastModified: item.LastModified ? item.LastModified.toISOString() : new Date().toISOString(),
-            downloadUrl: `/api/sohbets/stream?download=true&key=${encodeURIComponent(key)}`,
-            previewUrl: `/api/sohbets/stream?key=${encodeURIComponent(key)}`,
-            category,
-            subCategory,
-            hasPdf: true,
-            hasAudio,
-            audioUrl,
-            audioKey: matchingAudioItem?.Key,
-            durationLabel: hasAudio ? 'Audio & PDF' : 'PDF'
-          })
-        })
-
-        audioMap.forEach((item, baseKey) => {
-          if (!processedKeys.has(baseKey)) {
-            const key = item.Key!
-            const parts = key.split('/')
-            const fileName = parts[parts.length - 1]
-            const folderPath = key.substring(0, key.lastIndexOf('/') + 1)
-            
-            const category = parts.length > 1 ? parts[0] : 'Genel'
-            const subCategory = parts.length > 2 ? parts[1] : 'Genel'
-
-            const audioUrl = `/api/sohbets/stream?key=${encodeURIComponent(key)}`
-
-            files.push({
-              key,
-              name: fileName,
-              folderPath,
-              size: item.Size || 0,
-              lastModified: item.LastModified ? item.LastModified.toISOString() : new Date().toISOString(),
-              downloadUrl: `/api/sohbets/stream?download=true&key=${encodeURIComponent(key)}`,
-              category,
-              subCategory,
-              hasPdf: false,
-              hasAudio: true,
-              audioUrl,
-              audioKey: key,
-              durationLabel: 'Audio Track'
-            })
-          }
-        })
-      }
     } catch (err: any) {
-      console.warn('R2 S3 API error:', err.message)
+      console.error('Error fetching live Cloudflare R2 bucket objects:', err.message)
     }
   }
 
-  // 2. FALLBACK MODE IF NO R2 KEYS IN .ENV
-  if (!isLiveR2Data) {
-    let sourceFiles = MOCK_FILES
-    const activePrefix = rawPath || 'sohbets/'
+  // 2. PARSE REAL FILES & FOLDERS DYNAMICALLY
+  const allParsedFiles: SohbetFile[] = []
+  const subFolderMap = new Map<string, { name: string, fullPath: string, filesCount: number }>()
 
-    sourceFiles = sourceFiles.filter(f => f.folderPath.includes(rawPath) || f.folderPath.startsWith('sohbets/'))
+  // Filter out folder-marker keys ending with "/" and 0 size
+  const validObjects = allObjects.filter(item => item.Key && !item.Key.endsWith('/'))
 
-    files = sourceFiles.filter(f => f.folderPath === activePrefix || f.folderPath.endsWith(rawPath))
+  for (const item of validObjects) {
+    const rawKey: string = item.Key.normalize('NFC')
+    const lastSlashIndex = rawKey.lastIndexOf('/')
+    const fileName = lastSlashIndex >= 0 ? rawKey.substring(lastSlashIndex + 1) : rawKey
+    const folderPath = lastSlashIndex >= 0 ? rawKey.substring(0, lastSlashIndex + 1) : ''
+    const fileType = getFileType(fileName)
 
-    const folderMap = new Map<string, FolderNode>()
-    sourceFiles.forEach(f => {
-      const parts = f.folderPath.split('/').filter(Boolean)
-      if (parts.length > 0) {
-        const rootFolder = parts[0] === 'sohbets' && parts.length > 1 ? parts[1] : parts[0]
-        const fullPath = `sohbets/${rootFolder}/`
-        if (!folderMap.has(fullPath)) {
-          folderMap.set(fullPath, {
-            name: rootFolder,
-            fullPath,
-            children: [],
-            filesCount: 0
-          })
-        }
-        folderMap.get(fullPath)!.filesCount++
-      }
+    const isAudio = fileType === 'audio'
+    const isPdf = fileType === 'pdf'
+
+    const streamUrl = `/api/sohbets/stream?key=${encodeURIComponent(rawKey)}`
+    const downloadUrl = `/api/sohbets/stream?download=true&key=${encodeURIComponent(rawKey)}`
+
+    allParsedFiles.push({
+      key: rawKey,
+      name: fileName,
+      folderPath,
+      size: item.Size || 0,
+      lastModified: item.LastModified ? item.LastModified.toISOString() : new Date().toISOString(),
+      downloadUrl,
+      previewUrl: (isPdf || fileType === 'image') ? streamUrl : undefined,
+      fileType,
+      hasAudio: isAudio,
+      hasPdf: isPdf,
+      audioUrl: isAudio ? streamUrl : undefined,
+      audioKey: isAudio ? rawKey : undefined,
+      durationLabel: isAudio ? 'Audio' : undefined
     })
-    subFolders = Array.from(folderMap.values())
   }
 
-  // Filter Audio Only
-  if (audioOnlyFilter) {
-    files = files.filter(f => f.hasAudio)
-  }
+  // Determine current directory files & subfolders
+  let directFiles: SohbetFile[] = []
 
-  // Search Filter
   if (search) {
-    files = files.filter(f => 
+    // If searching, search all files across entire bucket
+    directFiles = allParsedFiles.filter(f => 
       f.name.toLowerCase().includes(search) ||
-      f.folderPath.toLowerCase().includes(search) ||
-      f.category.toLowerCase().includes(search) ||
-      f.subCategory.toLowerCase().includes(search)
+      f.folderPath.toLowerCase().includes(search)
     )
+  } else {
+    // 1. Find direct files at the current folder level
+    directFiles = allParsedFiles.filter(f => f.folderPath === currentPath)
+
+    // 2. Find direct subfolders at the current folder level
+    for (const f of allParsedFiles) {
+      if (f.folderPath.startsWith(currentPath) && f.folderPath !== currentPath) {
+        const remaining = f.folderPath.substring(currentPath.length)
+        const nextSegment = remaining.split('/')[0]
+        if (nextSegment) {
+          const subFullPath = `${currentPath}${nextSegment}/`
+          if (!subFolderMap.has(subFullPath)) {
+            subFolderMap.set(subFullPath, {
+              name: nextSegment,
+              fullPath: subFullPath,
+              filesCount: 0
+            })
+          }
+          subFolderMap.get(subFullPath)!.filesCount++
+        }
+      }
+    }
   }
+
+  // Filter Audio Only if active
+  if (audioOnlyFilter) {
+    directFiles = directFiles.filter(f => f.hasAudio)
+  }
+
+  const subFolders = Array.from(subFolderMap.values()).sort((a, b) => a.name.localeCompare(b.name, 'tr-TR'))
 
   return {
     success: true,
     isLiveR2Data,
-    currentPath: rawPath,
-    totalFiles: files.length,
-    files,
+    currentPath,
+    totalFiles: directFiles.length,
+    files: directFiles,
     subFolders
   }
 })

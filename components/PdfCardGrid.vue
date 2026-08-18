@@ -3,11 +3,11 @@
     <!-- Empty State -->
     <v-card v-if="files.length === 0" class="warm-card text-center pa-12 elevation-2">
       <v-avatar color="primary" variant="tonal" size="80" class="mb-4">
-        <v-icon icon="mdi-book-search-outline" size="48" color="primary"></v-icon>
+        <v-icon icon="mdi-file-search-outline" size="48" color="primary"></v-icon>
       </v-avatar>
-      <h3 class="text-h5 font-weight-bold mb-2">Keine Dateien gefunden</h3>
-      <p class="text-body-1 text-medium-emphasis mb-6">
-        Für deinen ausgewählten Ordner oder Suchbegriff gibt es noch keine Dokumente oder Audio-Dateien.
+      <h3 class="text-h5 font-weight-bold mb-2">Keine Dateien in diesem Ordner</h3>
+      <p class="text-body-1 text-medium-emphasis mb-0">
+        In diesem Ordner befinden sich Unterkategorien oder noch keine direkten Dateien.
       </p>
     </v-card>
 
@@ -26,16 +26,16 @@
 
           <!-- Top Badges -->
           <div class="d-flex align-start justify-space-between mb-4 pt-1">
-            <v-avatar :color="file.hasPdf ? 'amber-darken-1' : 'primary'" size="46" rounded="lg" class="elevation-3">
-              <v-icon :icon="file.hasPdf ? 'mdi-file-pdf-box' : 'mdi-headphones'" size="28" color="white"></v-icon>
+            <v-avatar :color="getFileBadgeColor(file)" size="46" rounded="lg" class="elevation-3">
+              <v-icon :icon="getFileIcon(file)" size="28" color="white"></v-icon>
             </v-avatar>
 
             <div class="d-flex flex-column align-end gap-1">
-              <v-chip v-if="file.hasPdf" size="x-small" color="secondary" variant="flat" class="font-weight-bold">
-                PDF
+              <v-chip size="x-small" :color="getFileBadgeColor(file)" variant="flat" class="font-weight-bold text-uppercase">
+                {{ file.fileType || 'Datei' }}
               </v-chip>
-              <v-chip v-if="file.hasAudio" size="x-small" color="primary" variant="flat" class="font-weight-bold">
-                <v-icon icon="mdi-headphones" start size="x-small"></v-icon> {{ file.hasPdf ? 'Audio & PDF' : 'Audio Track' }}
+              <v-chip v-if="file.hasAudio" size="x-small" color="primary" variant="tonal" class="font-weight-bold">
+                <v-icon icon="mdi-headphones" start size="x-small"></v-icon> {{ file.durationLabel || 'Audio' }}
               </v-chip>
             </div>
           </div>
@@ -47,7 +47,7 @@
             </h4>
             <div class="d-flex align-center text-caption text-medium-emphasis">
               <v-icon icon="mdi-folder-open-outline" size="x-small" color="primary" class="mr-1"></v-icon>
-              <span class="text-truncate font-weight-medium">{{ file.subCategory || file.category }}</span>
+              <span class="text-truncate font-weight-medium">{{ file.folderPath }}</span>
             </div>
           </div>
 
@@ -81,9 +81,9 @@
               Anhören
             </v-btn>
 
-            <!-- PDF Preview Button (Only if PDF exists) -->
+            <!-- Preview Button (For PDF / Images) -->
             <v-btn
-              v-if="file.hasPdf"
+              v-if="file.previewUrl"
               color="secondary"
               :variant="file.hasAudio ? 'tonal' : 'flat'"
               size="small"
@@ -96,8 +96,8 @@
             </v-btn>
 
             <v-btn
-              color="secondary"
-              variant="outlined"
+              color="surface-variant"
+              variant="tonal"
               size="small"
               rounded="circle"
               icon="mdi-download"
@@ -135,8 +135,8 @@
           <tr v-for="file in files" :key="file.key">
             <td>
               <div class="d-flex align-center py-3">
-                <v-avatar :color="file.hasPdf ? 'amber-darken-1' : 'primary'" size="36" rounded="lg" class="mr-3">
-                  <v-icon :icon="file.hasPdf ? 'mdi-file-pdf-box' : 'mdi-headphones'" color="white" size="20"></v-icon>
+                <v-avatar :color="getFileBadgeColor(file)" size="36" rounded="lg" class="mr-3">
+                  <v-icon :icon="getFileIcon(file)" color="white" size="20"></v-icon>
                 </v-avatar>
                 <div>
                   <div class="font-weight-bold">{{ file.name }}</div>
@@ -146,8 +146,10 @@
             </td>
             <td>
               <div class="d-flex gap-1">
-                <v-chip v-if="file.hasPdf" size="x-small" color="secondary" variant="flat" class="font-weight-bold">PDF</v-chip>
-                <v-chip v-if="file.hasAudio" size="x-small" color="primary" variant="flat" class="font-weight-bold">
+                <v-chip size="x-small" :color="getFileBadgeColor(file)" variant="flat" class="font-weight-bold text-uppercase">
+                  {{ file.fileType }}
+                </v-chip>
+                <v-chip v-if="file.hasAudio" size="x-small" color="primary" variant="tonal" class="font-weight-bold">
                   Audio
                 </v-chip>
               </div>
@@ -167,14 +169,14 @@
                 @click="$emit('play-audio', file)"
               ></v-btn>
               <v-btn
-                v-if="file.hasPdf"
+                v-if="file.previewUrl"
                 icon="mdi-eye-outline"
                 variant="tonal"
                 size="small"
                 color="secondary"
                 rounded="circle"
                 class="mr-1"
-                title="PDF Vorschau"
+                title="Vorschau"
                 @click="$emit('preview-file', file)"
               ></v-btn>
               <v-btn
@@ -216,8 +218,24 @@ defineEmits<{
 
 const snackbar = ref(false)
 
+function getFileIcon(file: SohbetFile): string {
+  if (file.fileType === 'pdf') return 'mdi-file-pdf-box'
+  if (file.fileType === 'audio') return 'mdi-headphones'
+  if (file.fileType === 'image') return 'mdi-image'
+  if (file.fileType === 'doc') return 'mdi-file-document-outline'
+  return 'mdi-file-outline'
+}
+
+function getFileBadgeColor(file: SohbetFile): string {
+  if (file.fileType === 'pdf') return 'amber-darken-1'
+  if (file.fileType === 'audio') return 'primary'
+  if (file.fileType === 'image') return 'indigo'
+  if (file.fileType === 'doc') return 'secondary'
+  return 'surface-variant'
+}
+
 function formatFileSize(bytes: number): string {
-  if (!bytes) return '1.5 MB'
+  if (!bytes) return '0 B'
   const k = 1024
   const sizes = ['Bytes', 'KB', 'MB', 'GB']
   const i = Math.floor(Math.log(bytes) / Math.log(k))

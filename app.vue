@@ -12,7 +12,7 @@
           </v-avatar>
           <div>
             <h2 class="text-h6 font-weight-bold gradient-text-warm">Sohbet & Podcast Archiv</h2>
-            <div class="text-caption text-medium-emphasis">PDF & Audio Bibliothek</div>
+            <div class="text-caption text-medium-emphasis">Cloudflare R2 Bibliothek</div>
           </div>
         </div>
 
@@ -21,7 +21,7 @@
         <!-- Search Input -->
         <v-text-field
           v-model="searchQuery"
-          placeholder="Sohbet oder Podcast suchen..."
+          placeholder="Sohbet oder Datei suchen..."
           prepend-inner-icon="mdi-magnify"
           variant="solo"
           flat
@@ -42,7 +42,7 @@
           prepend-icon="mdi-headphones"
           @click="audioOnlyFilter = !audioOnlyFilter"
         >
-          {{ audioOnlyFilter ? 'Nur mit Audio' : 'Alle Dateitypen' }}
+          {{ audioOnlyFilter ? 'Nur Audio' : 'Alle Dateien' }}
         </v-btn>
 
         <!-- View Mode Switch -->
@@ -75,32 +75,16 @@
 
     <v-main class="bg-transparent min-vh-100 pb-16" style="position: relative; z-index: 1;">
       <v-container class="max-width-xl pt-8">
-        <!-- R2 Live Data Status Banner -->
-        <v-alert
-          v-if="!isLiveR2Data"
-          type="info"
-          variant="tonal"
-          color="amber-darken-1"
-          rounded="xl"
-          class="mb-6 elevation-2"
-          closable
-        >
-          <template #prepend>
-            <v-icon icon="mdi-key-wireframe" color="amber-darken-1" class="mr-2"></v-icon>
-          </template>
-          <strong>R2 S3 API Live-Verbindung:</strong> Füge <code>R2_ACCESS_KEY_ID</code> und <code>R2_SECRET_ACCESS_KEY</code> in deine <code>.env</code> Datei ein, um deine Live-Ordner direkt aus Cloudflare R2 abzufragen.
-        </v-alert>
-
         <!-- Welcoming Hero Banner -->
         <v-card class="hero-warm-banner pa-6 pa-md-8 mb-8 elevation-4" elevation="0">
           <v-row align="center">
             <v-col cols="12" md="8">
               <div class="d-flex align-center flex-wrap gap-2 mb-3">
                 <v-chip color="primary" variant="flat" size="small" class="font-weight-bold">
-                  <v-icon icon="mdi-headphones" start size="small"></v-icon> Podcast & Audio Bereit
+                  <v-icon icon="mdi-cloud-check-outline" start size="small"></v-icon> Cloudflare R2 Live-Storage
                 </v-chip>
-                <v-chip color="secondary" variant="tonal" size="small" class="font-weight-bold">
-                  <v-icon icon="mdi-cloud-check-outline" start size="small"></v-icon> Live Cloudflare R2 S3 API
+                <v-chip v-if="audioOnlyFilter" color="secondary" variant="flat" size="small" class="font-weight-bold">
+                  <v-icon icon="mdi-headphones" start size="small"></v-icon> Audio-Filter Aktiv
                 </v-chip>
               </div>
 
@@ -108,22 +92,22 @@
                 Sohbets <span class="gradient-text-warm">Hören & Mitlesen</span>
               </h1>
               <p class="text-body-1 text-medium-emphasis mb-4" style="max-width: 650px;">
-                Wähle eine Kategorie aus, navigiere durch Ordner und lies oder höre dir die Unterlagen direkt im Browser an.
+                Wähle eine Kategorie oder einen Ordner aus, um die Unterlagen und Audios direkt im Browser anzusehen oder herunterzuladen.
               </p>
 
-              <!-- Meta Categories Pill Buttons -->
-              <div class="d-flex align-center flex-wrap gap-2">
+              <!-- Dynamic Top-Level Category Pills from R2 -->
+              <div v-if="topCategories.length > 0" class="d-flex align-center flex-wrap gap-2">
                 <v-chip
-                  v-for="cat in quickCategories"
-                  :key="cat.path"
+                  v-for="cat in topCategories"
+                  :key="cat.fullPath"
                   size="small"
                   variant="flat"
                   color="primary"
                   class="cursor-pointer font-weight-bold"
-                  @click="selectFolder(cat.path)"
+                  @click="selectFolder(cat.fullPath)"
                 >
-                  <v-icon :icon="cat.icon" start size="small"></v-icon>
-                  {{ cat.label }}
+                  <v-icon icon="mdi-folder-outline" start size="small"></v-icon>
+                  {{ cat.name }} ({{ cat.filesCount }})
                 </v-chip>
               </div>
             </v-col>
@@ -143,7 +127,7 @@
         <!-- Mobile Search Bar -->
         <v-text-field
           v-model="searchQuery"
-          placeholder="Sohbet oder Podcast suchen..."
+          placeholder="Sohbet oder Datei suchen..."
           prepend-inner-icon="mdi-magnify"
           variant="solo"
           flat
@@ -180,7 +164,7 @@
             </div>
 
             <template v-else>
-              <!-- Meta Category / Subfolder Cards Grid -->
+              <!-- Category / Subfolder Cards Grid -->
               <FolderCardGrid
                 :sub-folders="subFoldersList"
                 @select-folder="selectFolder"
@@ -231,15 +215,13 @@ const previewModalOpen = ref(false)
 const selectedPreviewFile = ref<SohbetFile | null>(null)
 const activeTrack = ref<SohbetFile | null>(null)
 
-// 4 Meta Categories provided by the user
-const quickCategories = [
-  { label: 'MÜFREDAT', path: 'MÜFREDAT/', icon: 'mdi-school-outline' },
-  { label: 'KİTAP TAVSİYELERİ', path: 'KİTAP TAVSİYELERİ/', icon: 'mdi-book-open-page-variant-outline' },
-  { label: 'GEZİ GÜZERGAHLARI', path: 'GEZİ GÜZERGAHLARI/', icon: 'mdi-map-marker-path' },
-  { label: 'AKTİVİTELER / ÜNİTE ÇALIŞMALARI', path: 'AKTİVİTELER / ÜNİTE ÇALIŞMALARI/', icon: 'mdi-puzzle-outline' }
-]
+// 1. Fetch Root Categories for Hero pills
+const { data: rootData } = await useFetch('/api/sohbets', {
+  query: { path: '' }
+})
+const topCategories = computed<FolderNode[]>(() => rootData.value?.subFolders || [])
 
-// Fetch Sohbets directly from Cloudflare R2 S3 API
+// 2. Fetch current level Sohbets & Subfolders from Cloudflare R2
 const { data, pending } = await useFetch('/api/sohbets', {
   query: computed(() => ({
     search: searchQuery.value,
@@ -251,7 +233,6 @@ const { data, pending } = await useFetch('/api/sohbets', {
 const filesList = computed<SohbetFile[]>(() => data.value?.files || [])
 const subFoldersList = computed<FolderNode[]>(() => data.value?.subFolders || [])
 const totalFilesCount = computed(() => data.value?.totalFiles || 0)
-const isLiveR2Data = computed(() => data.value?.isLiveR2Data || false)
 
 function toggleTheme() {
   theme.global.name.value = theme.global.current.value.dark ? 'light' : 'dark'
