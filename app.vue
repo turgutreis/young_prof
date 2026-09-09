@@ -1,12 +1,15 @@
 <template>
   <v-app>
     <main id="top">
-      <!-- 1. Top Header with Full Width Banner Logo -->
-      <header class="topbar">
+      <!-- 1. Top Header with Adaptive Collapsing Banner Logo -->
+      <header :class="['topbar', { 'is-scrolled': isScrolled }]">
         <a class="brand brandLogo" href="#top" aria-label="Young Professionals EU ana sayfa">
           <img src="/young-professionals-eu-header.png" alt="Young Professionals EU" />
         </a>
         <div class="topbarActions">
+          <a class="scrolledLogo" href="#top" aria-label="Young Professionals ana sayfa">
+            <img src="/young-professionals-logo.png" alt="Young Professionals" />
+          </a>
           <nav>
             <a href="#kaynaklar">Kaynaklar</a>
             <a href="#duyurular">Duyurular</a>
@@ -657,8 +660,23 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import type { SohbetFile } from '~/server/api/sohbets/index.get'
+
+// Scroll State for Dynamic Header
+const isScrolled = ref(false)
+
+function handleScroll() {
+  isScrolled.value = window.scrollY > 40
+}
+
+onMounted(() => {
+  window.addEventListener('scroll', handleScroll, { passive: true })
+})
+
+onUnmounted(() => {
+  window.removeEventListener('scroll', handleScroll)
+})
 
 // State for Accordion & Interactivity
 const openCategory = ref<string | null>(null)
