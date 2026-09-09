@@ -51,20 +51,21 @@ button, input, select, textarea {
 
 .topbar > .brandLogo {
   width: 100%;
-  padding: 0;
+  padding: 12px 5vw;
   border-bottom: 1px solid rgba(8, 8, 8, 0.08);
   overflow: hidden;
   background: #fff;
-  display: block;
-  line-height: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .topbar > .brandLogo img {
-  width: 100%;
-  max-width: none;
-  aspect-ratio: 1600/270;
-  height: auto;
-  object-fit: cover;
+  width: auto;
+  max-width: 640px;
+  height: 60px;
+  max-height: 72px;
+  object-fit: contain;
   object-position: center;
 }
 
@@ -1463,11 +1464,13 @@ footer p {
   .topbar {
     height: auto;
   }
-  .topbarActions {
-    min-height: 58px;
+  .topbar > .brandLogo {
+    padding: 8px 4vw;
   }
   .brandLogo img {
-    width: 100%;
+    width: auto;
+    max-width: 100%;
+    height: 44px;
   }
   .categoryGrid {
     grid-template-columns: repeat(2, 1fr);
