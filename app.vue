@@ -661,9 +661,9 @@ import { ref, computed } from 'vue'
 import type { SohbetFile } from '~/server/api/sohbets/index.get'
 
 // State for Accordion & Interactivity
-const openCategory = ref<string | null>('curriculum')
-const openStep = ref<string | null>('A')
-const openTopic = ref<string | null>('01')
+const openCategory = ref<string | null>(null)
+const openStep = ref<string | null>(null)
+const openTopic = ref<string | null>(null)
 const openReadingPlan = ref(true)
 const openCity = ref<string | null>(null)
 const openGuideSection = ref<string | null>('hamburg-places')
