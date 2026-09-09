@@ -43,10 +43,9 @@ button, input, select, textarea {
   display: block;
   padding: 0;
   background: #fff;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.05);
+  position: relative;
+  z-index: 10;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
 }
 
 .topbar > .brandLogo {
