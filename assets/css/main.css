@@ -683,7 +683,7 @@ nav a:hover:after {
   border: 0;
   background: #d8f27a;
   color: #111;
-  padding: 26px 30px;
+  padding: 24px 28px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -708,7 +708,7 @@ nav a:hover:after {
 }
 
 .readingPlanHead h4 {
-  font-size: 30px;
+  font-size: clamp(22px, 3.5vw, 30px);
   margin: 5px 0 4px;
   letter-spacing: -0.035em;
   font-weight: 900;
@@ -721,13 +721,13 @@ nav a:hover:after {
 }
 
 .readingPlanHead > b {
-  font-size: 34px;
+  font-size: 28px;
   font-weight: 400;
 }
 
 .bookGrid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 18px;
   padding: 8px 0 2px;
 }
@@ -735,9 +735,9 @@ nav a:hover:after {
 .bookCard {
   min-width: 0;
   background: #fff;
-  border: 1px solid rgba(0, 0, 0, 0.12);
-  padding: 15px;
-  border-radius: 4px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  padding: 14px;
+  border-radius: 6px;
   transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
   display: flex;
   flex-direction: column;
@@ -753,7 +753,8 @@ nav a:hover:after {
   aspect-ratio: 2/3;
   background: #eee;
   overflow: hidden;
-  border-radius: 2px;
+  border-radius: 4px;
+  width: 100%;
 }
 
 .bookCover img {
@@ -768,7 +769,7 @@ nav a:hover:after {
   inset: auto 0 0;
   background: rgba(8, 8, 8, 0.9);
   color: #fff;
-  padding: 11px;
+  padding: 8px 10px;
   font-size: 10px;
   font-weight: 900;
   text-align: center;
@@ -781,17 +782,20 @@ nav a:hover:after {
 }
 
 .bookCard h5 {
-  font-size: 14px;
-  line-height: 1.3;
-  margin: 15px 0 6px;
+  font-size: 13px;
+  line-height: 1.35;
+  margin: 12px 0 6px;
   font-weight: 800;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .bookCard > p {
   font-size: 11px !important;
   color: #687083;
   margin: 0 !important;
-  line-height: 1.45 !important;
+  line-height: 1.4 !important;
+  word-break: break-word;
 }
 
 /* 03 Activities Platforms */
@@ -1528,6 +1532,13 @@ footer p {
     max-width: 100%;
     height: 44px;
   }
+  .insidePanel {
+    padding: 24px 20px;
+  }
+  .bookGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+  }
   .categoryGrid {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -1554,6 +1565,26 @@ footer p {
 }
 
 @media (max-width: 760px) {
+  .insidePanel {
+    padding: 18px 14px;
+  }
+  .readingPlanHead {
+    padding: 18px 20px;
+  }
+  .readingPlanHead h4 {
+    font-size: 24px;
+  }
+  .bookGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .bookCard {
+    padding: 10px;
+  }
+  .bookCard h5 {
+    font-size: 12px;
+    margin: 8px 0 4px;
+  }
   .stepButtons {
     grid-template-columns: 1fr;
   }
@@ -1616,7 +1647,38 @@ footer p {
     font-size: 11px;
   }
   .resources {
-    padding: 40px 5vw;
+    padding: 30px 4vw;
+  }
+  .insidePanel {
+    padding: 14px 10px;
+  }
+  .readingPlanHead {
+    padding: 14px 16px;
+  }
+  .readingPlanHead h4 {
+    font-size: 20px;
+  }
+  .readingPlanHead p {
+    font-size: 11px;
+  }
+  .readingPlanHead > b {
+    font-size: 22px;
+  }
+  .bookGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .bookCard {
+    padding: 8px 6px;
+  }
+  .bookCard h5 {
+    font-size: 11px;
+    line-height: 1.3;
+    margin: 6px 0 2px;
+  }
+  .bookCard > p {
+    font-size: 10px !important;
+    line-height: 1.25 !important;
   }
   .categoryGrid {
     grid-template-columns: 1fr;
