@@ -605,26 +605,27 @@
           action="mailto:info@young-professionals.eu"
           method="post"
           enctype="text/plain"
+          @submit.prevent="submitContactForm"
         >
           <label>
             Adınız ve soyadınız
-            <input name="Ad Soyad" type="text" required placeholder="Adınızı yazın" />
+            <input v-model="contactForm.name" name="Ad Soyad" type="text" required placeholder="Adınızı yazın" />
           </label>
           <label>
             E-posta adresiniz
-            <input name="E-posta" type="email" required placeholder="ornek@email.com" />
+            <input v-model="contactForm.email" name="E-posta" type="email" required placeholder="ornek@email.com" />
           </label>
           <label>
             Mesaj türü
-            <select name="Mesaj Türü" default-value="Soru">
-              <option>Soru</option>
-              <option>Teklif</option>
-              <option>Görüş ve öneri</option>
+            <select v-model="contactForm.type" name="Mesaj Türü">
+              <option value="Soru">Soru</option>
+              <option value="Teklif">Teklif</option>
+              <option value="Görüş ve öneri">Görüş ve öneri</option>
             </select>
           </label>
           <label>
             Mesajınız
-            <textarea name="Mesaj" required :rows="6" placeholder="Mesajınızı buraya yazın..."></textarea>
+            <textarea v-model="contactForm.message" name="Mesaj" required :rows="6" placeholder="Mesajınızı buraya yazın..."></textarea>
           </label>
           <button type="submit">
             Yöneticiye gönder <span>↗</span>
@@ -747,6 +748,27 @@ const openActivityPlatform = ref<string | null>('Genç Aile')
 const previewModalOpen = ref(false)
 const selectedPreviewFile = ref<SohbetFile | null>(null)
 const activeTrack = ref<SohbetFile | null>(null)
+
+// Contact Form State
+const contactForm = ref({
+  name: '',
+  email: '',
+  type: 'Soru',
+  message: ''
+})
+
+function submitContactForm() {
+  const name = contactForm.value.name.trim()
+  const email = contactForm.value.email.trim()
+  const type = contactForm.value.type || 'Soru'
+  const message = contactForm.value.message.trim()
+
+  const subject = encodeURIComponent(`[Young Professionals] ${type} - ${name}`)
+  const body = encodeURIComponent(
+    `Ad Soyad: ${name}\nE-posta: ${email}\nMesaj Türü: ${type}\n\nMesaj:\n${message}\n`
+  )
+  window.location.href = `mailto:info@young-professionals.eu?subject=${subject}&body=${body}`
+}
 
 function toggleCategory(id: string) {
   if (openCategory.value === id) {
