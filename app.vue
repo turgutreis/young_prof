@@ -681,6 +681,20 @@
 import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
 import type { SohbetFile } from '~/server/api/sohbets/index.get'
 
+useSeoMeta({
+  title: 'Young Professionals EU · Gençlik Bilgi ve Tecrübe Paylaşım Platformu',
+  description: 'Gençlik Bilgi ve Tecrübe Paylaşım Platformu',
+  ogTitle: 'Young Professionals EU',
+  ogDescription: 'Gençlik Bilgi ve Tecrübe Paylaşım Platformu',
+  ogImage: 'https://young-professionals.eu/og.png',
+  ogUrl: 'https://young-professionals.eu',
+  ogSiteName: 'Young Professionals EU',
+  twitterCard: 'summary_large_image',
+  twitterTitle: 'Young Professionals EU',
+  twitterDescription: 'Gençlik Bilgi ve Tecrübe Paylaşım Platformu',
+  twitterImage: 'https://young-professionals.eu/og.png'
+})
+
 // Scroll State for Dynamic Header
 const isScrolled = ref(false)
 let ticking = false
