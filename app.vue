@@ -1,11 +1,14 @@
 <template>
   <v-app>
     <main id="top">
-      <!-- 1. Top Header with Adaptive Collapsing Banner Logo -->
-      <header :class="['topbar', { 'is-scrolled': isScrolled }]">
+      <!-- 1. Header Banner & Sticky Nav -->
+      <div class="topBanner">
         <a class="brand brandLogo" href="#top" aria-label="Young Professionals EU ana sayfa">
           <img src="/young-professionals-eu-header.png" alt="Young Professionals EU" />
         </a>
+      </div>
+
+      <header :class="['topbar', { 'is-scrolled': isScrolled }]">
         <div class="topbarActions">
           <a class="scrolledLogo" href="#top" aria-label="Young Professionals ana sayfa">
             <img src="/young-professionals-logo.png" alt="Young Professionals" />
@@ -665,13 +668,27 @@ import type { SohbetFile } from '~/server/api/sohbets/index.get'
 
 // Scroll State for Dynamic Header
 const isScrolled = ref(false)
+let ticking = false
 
 function handleScroll() {
-  isScrolled.value = window.scrollY > 40
+  if (!ticking) {
+    window.requestAnimationFrame(() => {
+      const top = window.scrollY || document.documentElement.scrollTop || 0
+      // Hysteresis deadband prevents flickering/jittering at threshold
+      if (!isScrolled.value && top > 70) {
+        isScrolled.value = true
+      } else if (isScrolled.value && top < 20) {
+        isScrolled.value = false
+      }
+      ticking = false
+    })
+    ticking = true
+  }
 }
 
 onMounted(() => {
   window.addEventListener('scroll', handleScroll, { passive: true })
+  handleScroll()
 })
 
 onUnmounted(() => {
