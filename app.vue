@@ -549,7 +549,17 @@
 
               <!-- 05 DUYURULAR PANEL -->
               <template v-else-if="openCategory === 'news'">
-                <DuyurularBoard />
+                <div class="fileShelf simpleShelf">
+                  <div>
+                    <span>İçerik alanı</span>
+                    <h4>Duyurular</h4>
+                    <p>Bu bölüme ilgili dosyalar ve içerikler eklenecek.</p>
+                  </div>
+                  <div class="filePlaceholder">
+                    <b>＋</b>
+                    <span>Dosya eklenecek</span>
+                  </div>
+                </div>
               </template>
             </div>
           </div>
