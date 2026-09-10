@@ -25,36 +25,51 @@
         </div>
       </header>
 
-      <!-- 2. Master Interactive Categories (Accordion Grid) -->
+      <!-- 2. Master Interactive Categories (3+2 Grid + Full-width Content Drawer) -->
       <section class="resources" id="kaynaklar">
-        <div class="categoryGrid accordionGrid">
-          <article
+        <div class="categoryGrid">
+          <button
             v-for="c in categories"
             :key="c.id"
-            :class="['categoryCard', 'accordionCard', c.tone, { isOpen: openCategory === c.id }]"
+            :class="['categoryCard', c.tone, { isActive: openCategory === c.id }]"
+            :aria-expanded="openCategory === c.id"
+            @click="toggleCategory(c.id)"
           >
-            <button
-              class="categoryTrigger"
-              :aria-expanded="openCategory === c.id"
-              @click="toggleCategory(c.id)"
-            >
-              <div class="cardTop">
-                <span>{{ c.no }}</span>
-                <b>{{ c.icon }}</b>
-              </div>
-              <h3>{{ c.title }}</h3>
-              <p>{{ c.text }}</p>
-              <div class="cardLink">
-                <span>{{ openCategory === c.id ? 'Kapat' : 'İçeriği aç' }}</span>
-                <b>{{ openCategory === c.id ? '−' : '+' }}</b>
-              </div>
-            </button>
+            <div class="cardTop">
+              <span>{{ c.no }}</span>
+              <b>{{ c.icon }}</b>
+            </div>
+            <h3>{{ c.title }}</h3>
+            <p>{{ c.text }}</p>
+            <div class="cardLink">
+              <span>{{ openCategory === c.id ? 'Kapat' : 'İçeriği aç' }}</span>
+              <b>{{ openCategory === c.id ? '−' : '+' }}</b>
+            </div>
+          </button>
+        </div>
 
-            <!-- Inside Expanded Panel -->
-            <div v-if="openCategory === c.id" class="insidePanel">
-              <!-- 01 MÜFREDAT PANEL -->
-              <template v-if="c.id === 'curriculum'">
-                <p class="stepLabel">1. Basamak · Kategori seçin</p>
+        <!-- Active Expanded Panel below Grid -->
+        <transition name="panel-slide">
+          <div
+            v-if="openCategory && activeCategoryData"
+            :class="['activeResourcePanel', activeCategoryData.tone]"
+            id="active-category-panel"
+          >
+          <div class="panelHeader">
+            <div class="panelHeaderLeft">
+              <span class="panelNumber">{{ activeCategoryData.no }}</span>
+              <h3>{{ activeCategoryData.title }}</h3>
+            </div>
+            <button class="panelCloseBtn" @click="toggleCategory(openCategory)" aria-label="Bölümü kapat">
+              <span>Kapat</span>
+              <b>✕</b>
+            </button>
+          </div>
+
+          <div class="insidePanel">
+            <!-- 01 MÜFREDAT PANEL -->
+            <template v-if="openCategory === 'curriculum'">
+              <p class="stepLabel">1. Basamak · Kategori seçin</p>
                 <div class="stepButtons">
                   <button
                     v-for="step in curriculumSteps"
@@ -151,7 +166,7 @@
               </template>
 
               <!-- 02 KÜTÜPHANE / READING PLAN PANEL -->
-              <template v-else-if="c.id === 'books'">
+              <template v-else-if="openCategory === 'books'">
                 <div class="libraryPanel">
                   <button
                     class="readingPlanHead"
@@ -187,7 +202,7 @@
               </template>
 
               <!-- 03 AKTİVİTELER / PLATFORMLAR PANEL -->
-              <template v-else-if="c.id === 'activities'">
+              <template v-else-if="openCategory === 'activities'">
                 <div class="activityPlatforms">
                   <div class="platformIntro">
                     <span>5 ALT PLATFORM</span>
@@ -253,7 +268,7 @@
               </template>
 
               <!-- 04 GEZİ GÜZERGAHLARI PANEL -->
-              <template v-else-if="c.id === 'routes'">
+              <template v-else-if="openCategory === 'routes'">
                 <div class="citiesPanel">
                   <!-- Hamburg City Guide -->
                   <button
@@ -533,12 +548,12 @@
               </template>
 
               <!-- 05 DUYURULAR PANEL -->
-              <template v-else-if="c.id === 'news'">
+              <template v-else-if="openCategory === 'news'">
                 <DuyurularBoard />
               </template>
             </div>
-          </article>
-        </div>
+          </div>
+        </transition>
       </section>
 
       <!-- 3. Announcement Banner -->
@@ -663,7 +678,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
 import type { SohbetFile } from '~/server/api/sohbets/index.get'
 
 // Scroll State for Dynamic Header
@@ -697,6 +712,7 @@ onUnmounted(() => {
 
 // State for Accordion & Interactivity
 const openCategory = ref<string | null>(null)
+const activeCategoryData = computed(() => categories.find(c => c.id === openCategory.value))
 const openStep = ref<string | null>(null)
 const openTopic = ref<string | null>(null)
 const openReadingPlan = ref(true)
@@ -709,7 +725,17 @@ const selectedPreviewFile = ref<SohbetFile | null>(null)
 const activeTrack = ref<SohbetFile | null>(null)
 
 function toggleCategory(id: string) {
-  openCategory.value = openCategory.value === id ? null : id
+  if (openCategory.value === id) {
+    openCategory.value = null
+  } else {
+    openCategory.value = id
+    nextTick(() => {
+      const el = document.getElementById('active-category-panel')
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+      }
+    })
+  }
 }
 
 function selectStep(step: string) {

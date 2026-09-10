@@ -172,7 +172,7 @@ nav a:hover:after {
   color: #fff;
 }
 
-/* Category Grid & Accordion Cards */
+/* Category Grid & Cards */
 .resources {
   padding: 60px 5vw 100px;
 }
@@ -191,11 +191,16 @@ nav a:hover:after {
   display: flex;
   flex-direction: column;
   cursor: pointer;
-  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease, outline-color 0.2s ease;
   grid-column: span 2;
   border-top: 6px solid #080808;
-  border-radius: 4px;
+  border-radius: 6px;
   background-clip: padding-box;
+  padding: 26px;
+  width: 100%;
+  appearance: none;
+  font: inherit;
+  position: relative;
 }
 
 .categoryCard:nth-child(4),
@@ -207,6 +212,25 @@ nav a:hover:after {
 .categoryCard:hover {
   transform: translateY(-5px);
   box-shadow: 0 15px 35px rgba(17, 29, 53, 0.12);
+}
+
+.categoryCard.isActive {
+  transform: translateY(-3px);
+  box-shadow: 0 0 0 3px #080808, 0 16px 40px rgba(17, 29, 53, 0.16);
+}
+
+.categoryCard.isActive:after {
+  content: "";
+  position: absolute;
+  bottom: -16px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 10px solid transparent;
+  border-right: 10px solid transparent;
+  border-top: 10px solid #080808;
+  z-index: 10;
 }
 
 .categoryCard.curriculumBlue {
@@ -236,38 +260,13 @@ nav a:hover:after {
   border-top-color: #e5b824;
 }
 
-.accordionCard {
-  padding: 0;
-  min-height: 280px;
-  overflow: hidden;
-}
-
-.accordionCard.isOpen {
-  grid-column: 1 / -1 !important;
-  min-height: 0;
-  transform: none !important;
-  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.1) !important;
-}
-
-.categoryTrigger {
-  appearance: none;
-  border: 0;
-  background: transparent;
-  color: inherit;
-  width: 100%;
-  min-height: 274px;
-  padding: 26px;
-  text-align: left;
-  display: flex;
-  flex-direction: column;
-  cursor: pointer;
-}
-
 .cardTop {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   font-size: 11px;
   font-weight: 900;
+  width: 100%;
 }
 
 .cardTop b {
@@ -275,16 +274,16 @@ nav a:hover:after {
   line-height: 0.7;
 }
 
-.categoryTrigger h3 {
+.categoryCard h3 {
   max-width: 320px;
   font-size: 26px;
   letter-spacing: -0.035em;
   line-height: 1.1;
-  margin: 44px 0 12px;
+  margin: 36px 0 12px;
   font-weight: 900;
 }
 
-.categoryTrigger > p {
+.categoryCard > p {
   max-width: 340px;
   font-size: 13px;
   line-height: 1.55;
@@ -294,12 +293,14 @@ nav a:hover:after {
 
 .cardLink {
   margin-top: auto;
-  padding-top: 24px;
+  padding-top: 22px;
   border-top: 1px solid rgba(17, 29, 53, 0.25);
   display: flex;
   justify-content: space-between;
+  align-items: center;
   font-size: 12px;
   font-weight: 900;
+  width: 100%;
 }
 
 .cardLink b {
@@ -307,23 +308,108 @@ nav a:hover:after {
   line-height: 0.6;
 }
 
-/* Inside Panel Content */
-.insidePanel {
-  background: #fff;
-  padding: 36px;
-  border-top: 1px solid rgba(0, 0, 0, 0.15);
-  animation: panelIn 0.25s ease-out;
+/* Dedicated Full-Width Active Resource Panel */
+.activeResourcePanel {
+  margin-top: 24px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 16px 45px rgba(0, 0, 0, 0.08);
+  border-top: 6px solid #080808;
+  background-clip: padding-box;
+  scroll-margin-top: 80px;
 }
 
-@keyframes panelIn {
-  from {
-    opacity: 0;
-    transform: translateY(-8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.activeResourcePanel.curriculumBlue {
+  border-top-color: #0872b9;
+}
+
+.activeResourcePanel.lime {
+  border-top-color: #d19909;
+}
+
+.activeResourcePanel.violet {
+  border-top-color: #c91d27;
+}
+
+.activeResourcePanel.routesGreen {
+  border-top-color: #398b58;
+}
+
+.activeResourcePanel.yellow {
+  border-top-color: #e5b824;
+}
+
+.panelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 36px;
+  background: #ffffff;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.panelHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.panelNumber {
+  font-size: 12px;
+  font-weight: 900;
+  padding: 4px 10px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.06);
+  color: #111;
+  letter-spacing: 0.05em;
+}
+
+.panelHeaderLeft h3 {
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: -0.025em;
+  margin: 0;
+  color: #111;
+}
+
+.panelCloseBtn {
+  appearance: none;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  background: #f8f9fb;
+  color: #111;
+  padding: 8px 18px;
+  border-radius: 99px;
+  font-size: 12px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.panelCloseBtn:hover {
+  background: #080808;
+  color: #fff;
+  border-color: #080808;
+}
+
+.panel-slide-enter-active,
+.panel-slide-leave-active {
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.panel-slide-enter-from,
+.panel-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-12px);
+}
+
+/* Inside Panel Content */
+.insidePanel {
+  background: #ffffff;
+  padding: 36px;
 }
 
 .stepLabel {
@@ -1547,6 +1633,12 @@ footer p {
 }
 
 @media (max-width: 760px) {
+  .panelHeader {
+    padding: 16px 20px;
+  }
+  .panelHeaderLeft h3 {
+    font-size: 19px;
+  }
   .insidePanel {
     padding: 18px 14px;
   }
@@ -1673,6 +1765,25 @@ footer p {
   .categoryCard:nth-child(4),
   .categoryCard:nth-child(5) {
     grid-column: auto;
+    min-height: 230px;
+    padding: 20px;
+  }
+  .categoryCard h3 {
+    font-size: 22px;
+    margin: 22px 0 8px;
+  }
+  .categoryCard.isActive:after {
+    display: none;
+  }
+  .panelHeader {
+    padding: 14px 16px;
+  }
+  .panelHeaderLeft h3 {
+    font-size: 17px;
+  }
+  .panelCloseBtn {
+    padding: 6px 12px;
+    font-size: 11px;
   }
   .announcement {
     grid-template-columns: 1fr;
