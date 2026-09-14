@@ -26,6 +26,10 @@ export default defineEventHandler(async (event) => {
   else if (ext === 'm4a') contentType = 'audio/mp4'
   else if (ext === 'wav') contentType = 'audio/wav'
   else if (ext === 'ogg') contentType = 'audio/ogg'
+  else if (ext === 'png') contentType = 'image/png'
+  else if (ext === 'jpg' || ext === 'jpeg') contentType = 'image/jpeg'
+  else if (ext === 'webp') contentType = 'image/webp'
+  else if (ext === 'svg') contentType = 'image/svg+xml'
 
   // If R2 credentials exist, fetch from S3 client with optional Range support
   if (config.r2AccessKeyId && config.r2SecretAccessKey) {

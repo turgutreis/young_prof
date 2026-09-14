@@ -806,15 +806,33 @@ function toggleActivityPlatform(platform: string) {
   openActivityPlatform.value = openActivityPlatform.value === platform ? null : platform
 }
 
+function getR2Url(key: string, download = false) {
+  const cleanKey = key.replace(/^\//, '')
+  return `/api/sohbets/stream?key=${encodeURIComponent(cleanKey)}${download ? '&download=true' : ''}`
+}
+
 function openPdf(file: any) {
+  let fileKey = file.key || ''
+  if (!fileKey && file.href) {
+    if (file.href.includes('key=')) {
+      const match = file.href.match(/key=([^&]+)/)
+      if (match) fileKey = decodeURIComponent(match[1])
+    } else {
+      fileKey = file.href.replace(/^\//, '')
+    }
+  }
+
+  const streamUrl = `/api/sohbets/stream?key=${encodeURIComponent(fileKey)}`
+  const downloadUrl = `/api/sohbets/stream?download=true&key=${encodeURIComponent(fileKey)}`
+
   selectedPreviewFile.value = {
-    key: file.href || file.key,
+    key: fileKey,
     name: file.title || file.name,
     folderPath: '',
     size: 0,
     lastModified: '',
-    downloadUrl: file.href || file.downloadUrl,
-    previewUrl: file.href || file.previewUrl,
+    downloadUrl: file.downloadUrl || downloadUrl,
+    previewUrl: file.href || streamUrl,
     fileType: 'pdf',
     hasPdf: true,
     hasAudio: false
@@ -884,190 +902,190 @@ const readingPlanBooks = [
   {
     title: "Kur’an’ın Sihirli Ufku: Fatiha ve Bakara Suresi (1–39)",
     author: 'M. Fethullah Gülen',
-    cover: '/books/2026-27/fatiha-bakara.png',
+    cover: getR2Url('books/2026-27/fatiha-bakara.png'),
     href: 'https://kitapdunyasi.eu/products/kuranin-sihirli-ufku-fatiha-ve-bakara-suresi-1-39'
   },
   {
     title: 'Adanmış Bir Gönül İnsanı: Hacı Ata',
     author: 'Muhittin Küçük',
-    cover: '/books/2026-27/haci-ata.png',
+    cover: getR2Url('books/2026-27/haci-ata.png'),
     href: 'https://kitapdunyasi.eu/products/adanmis-bir-gonul-i̇nsani-haci-ata'
   },
   {
     title: 'Das Hauptgebet – Mein Augenlicht',
     author: 'Şerif Özcan',
-    cover: '/books/2026-27/das-hauptgebet.png',
+    cover: getR2Url('books/2026-27/das-hauptgebet.png'),
     href: 'https://kitapdunyasi.eu/collections/yeni-cikanlar/products/das-hauptgebet-mein-augenlicht'
   },
   {
     title: 'Gençlik Rehberi Üzerine',
     author: 'Bediüzzaman Said Nursî · Açıklamalar: Abdullah Aymaz',
-    cover: '/books/2026-27/genclik-rehberi.png',
+    cover: getR2Url('books/2026-27/genclik-rehberi.png'),
     href: 'https://kitapdunyasi.eu/products/genclik-rehberi-uzerine-sureyya?_pos=2&_sid=c1694656b&_ss=r'
   },
   {
     title: 'İnsan Neyle Yaşar?',
     author: 'L. N. Tolstoy',
-    cover: '/books/2026-27/insan-neyle-yasar.png',
+    cover: getR2Url('books/2026-27/insan-neyle-yasar.png'),
     href: 'https://kitapdunyasi.eu/products/i̇nsan-neyle-yasar-karton-kapak?_pos=2&_sid=18edda30d&_ss=r'
   },
   {
     title: 'Yayınlanmayan Lâhika Mektuplarından Seçmeler',
     author: 'Bediüzzaman Said Nursî',
-    cover: '/books/2026-27/yayinlanmayan-lahika-mektuplari.png',
+    cover: getR2Url('books/2026-27/yayinlanmayan-lahika-mektuplari.png'),
     href: 'https://kitapdunyasi.eu/products/yayinlanmayan-lahika-mektuplari?_pos=1&_sid=c97367bb2&_ss=r'
   },
   {
     title: '40 Hadithe – Essenzielle Lehren des Propheten Muhammed',
     author: 'Mit Kommentar von Esat Mavinehir',
-    cover: '/books/2026-27/40-hadithe.png',
+    cover: getR2Url('books/2026-27/40-hadithe.png'),
     href: 'https://kitapdunyasi.eu/products/40-hadithe-essenzielle-lehren-des-propheten-muhammed?_pos=1&_sid=2c744cd93&_ss=r'
   }
 ]
 
-// Step A, B, C, Özel Günler Files
+// Step A, B, C, Özel Günler Files (Loaded from Cloudflare R2)
 const sohbetiCananFiles = [
-  { title: 'Ana Çalışma Metni', href: '/files/01-sohbet-i-canan/ana-calisma-metni.pdf' },
-  { title: 'Handout', href: '/files/01-sohbet-i-canan/handout.pdf' },
-  { title: 'Sunum', href: '/files/01-sohbet-i-canan/sunum.pdf' },
-  { title: 'Kahoot! Soruları', href: '/files/01-sohbet-i-canan/kahoot.pdf' }
+  { title: 'Ana Çalışma Metni', href: getR2Url('files/01-sohbet-i-canan/ana-calisma-metni.pdf') },
+  { title: 'Handout', href: getR2Url('files/01-sohbet-i-canan/handout.pdf') },
+  { title: 'Sunum', href: getR2Url('files/01-sohbet-i-canan/sunum.pdf') },
+  { title: 'Kahoot! Soruları', href: getR2Url('files/01-sohbet-i-canan/kahoot.pdf') }
 ]
 const allahaImanFiles = [
-  { title: 'Ana Çalışma Metni', href: '/files/03-allaha-iman/ana-calisma-metni.pdf' },
-  { title: 'Handout', href: '/files/03-allaha-iman/handout.pdf' },
-  { title: 'Sunum', href: '/files/03-allaha-iman/sunum.pdf' },
-  { title: 'Kahoot! Soruları', href: '/files/03-allaha-iman/kahoot.pdf' }
+  { title: 'Ana Çalışma Metni', href: getR2Url('files/03-allaha-iman/ana-calisma-metni.pdf') },
+  { title: 'Handout', href: getR2Url('files/03-allaha-iman/handout.pdf') },
+  { title: 'Sunum', href: getR2Url('files/03-allaha-iman/sunum.pdf') },
+  { title: 'Kahoot! Soruları', href: getR2Url('files/03-allaha-iman/kahoot.pdf') }
 ]
 const peygamberlereImanFiles = [
-  { title: 'Ana Çalışma Metni', href: '/files/06-peygamberlere-iman/ana-calisma-metni.pdf' },
-  { title: 'Handout', href: '/files/06-peygamberlere-iman/handout.pdf' },
-  { title: 'Kahoot! Soruları', href: '/files/06-peygamberlere-iman/kahoot.pdf' },
-  { title: 'Sunum', href: '/files/06-peygamberlere-iman/sunum.pdf' }
+  { title: 'Ana Çalışma Metni', href: getR2Url('files/06-peygamberlere-iman/ana-calisma-metni.pdf') },
+  { title: 'Handout', href: getR2Url('files/06-peygamberlere-iman/handout.pdf') },
+  { title: 'Kahoot! Soruları', href: getR2Url('files/06-peygamberlere-iman/kahoot.pdf') },
+  { title: 'Sunum', href: getR2Url('files/06-peygamberlere-iman/sunum.pdf') }
 ]
 const namazFiles = [
-  { title: 'Ana Çalışma Metni', href: '/files/19-namaz/ana-calisma-metni.pdf' },
-  { title: 'Handout', href: '/files/19-namaz/handout.pdf' },
-  { title: 'Sunum', href: '/files/19-namaz/sunum.pdf' },
-  { title: 'Kahoot! Soruları', href: '/files/19-namaz/kahoot.pdf' }
+  { title: 'Ana Çalışma Metni', href: getR2Url('files/19-namaz/ana-calisma-metni.pdf') },
+  { title: 'Handout', href: getR2Url('files/19-namaz/handout.pdf') },
+  { title: 'Sunum', href: getR2Url('files/19-namaz/sunum.pdf') },
+  { title: 'Kahoot! Soruları', href: getR2Url('files/19-namaz/kahoot.pdf') }
 ]
 const isYogunluguNamazHirsizligiFiles = [
-  { title: 'Ana Çalışma Metni', href: '/files/20-is-yogunlugu-namaz-hirsizligi/ana-calisma-metni.pdf' },
-  { title: 'Özet', href: '/files/20-is-yogunlugu-namaz-hirsizligi/ozet.pdf' },
-  { title: 'Sunum', href: '/files/20-is-yogunlugu-namaz-hirsizligi/sunum.pdf' },
-  { title: 'Kahoot! Soruları', href: '/files/20-is-yogunlugu-namaz-hirsizligi/kahoot.pdf' }
+  { title: 'Ana Çalışma Metni', href: getR2Url('files/20-is-yogunlugu-namaz-hirsizligi/ana-calisma-metni.pdf') },
+  { title: 'Özet', href: getR2Url('files/20-is-yogunlugu-namaz-hirsizligi/ozet.pdf') },
+  { title: 'Sunum', href: getR2Url('files/20-is-yogunlugu-namaz-hirsizligi/sunum.pdf') },
+  { title: 'Kahoot! Soruları', href: getR2Url('files/20-is-yogunlugu-namaz-hirsizligi/kahoot.pdf') }
 ]
 const nubuvveteDelillerFiles = [
-  { title: 'Ana Çalışma Metni', href: '/files/11-nubuvvete-deliller/ana-calisma-metni.pdf' },
-  { title: 'Handout', href: '/files/11-nubuvvete-deliller/handout.pdf' },
-  { title: 'Sunum', href: '/files/11-nubuvvete-deliller/sunum.pdf' },
-  { title: 'Kahoot! Soruları', href: '/files/11-nubuvvete-deliller/kahoot.pdf' }
+  { title: 'Ana Çalışma Metni', href: getR2Url('files/11-nubuvvete-deliller/ana-calisma-metni.pdf') },
+  { title: 'Handout', href: getR2Url('files/11-nubuvvete-deliller/handout.pdf') },
+  { title: 'Sunum', href: getR2Url('files/11-nubuvvete-deliller/sunum.pdf') },
+  { title: 'Kahoot! Soruları', href: getR2Url('files/11-nubuvvete-deliller/kahoot.pdf') }
 ]
 const semailAhlakAdabFiles = [
-  { title: 'Ana Çalışma Metni', href: '/files/13-semail-ahlak-adab/ana-calisma-metni.pdf' },
-  { title: 'Handout 1', href: '/files/13-semail-ahlak-adab/handout-1.pdf' },
-  { title: 'Handout 2', href: '/files/13-semail-ahlak-adab/handout-2.pdf' },
-  { title: 'Sunum', href: '/files/13-semail-ahlak-adab/sunum.pdf' },
-  { title: 'Kahoot! Soruları', href: '/files/13-semail-ahlak-adab/kahoot.pdf' }
+  { title: 'Ana Çalışma Metni', href: getR2Url('files/13-semail-ahlak-adab/ana-calisma-metni.pdf') },
+  { title: 'Handout 1', href: getR2Url('files/13-semail-ahlak-adab/handout-1.pdf') },
+  { title: 'Handout 2', href: getR2Url('files/13-semail-ahlak-adab/handout-2.pdf') },
+  { title: 'Sunum', href: getR2Url('files/13-semail-ahlak-adab/sunum.pdf') },
+  { title: 'Kahoot! Soruları', href: getR2Url('files/13-semail-ahlak-adab/kahoot.pdf') }
 ]
 const sahabeFaziletleriFiles = [
-  { title: 'Ana Çalışma Metni', href: '/files/15-sahabe-efendilerimizin-faziletleri/ana-calisma-metni.pdf' },
-  { title: 'Handout', href: '/files/15-sahabe-efendilerimizin-faziletleri/handout.pdf' },
-  { title: 'Sunum', href: '/files/15-sahabe-efendilerimizin-faziletleri/sunum.pdf' },
-  { title: 'Kahoot! Soruları', href: '/files/15-sahabe-efendilerimizin-faziletleri/kahoot.pdf' }
+  { title: 'Ana Çalışma Metni', href: getR2Url('files/15-sahabe-efendilerimizin-faziletleri/ana-calisma-metni.pdf') },
+  { title: 'Handout', href: getR2Url('files/15-sahabe-efendilerimizin-faziletleri/handout.pdf') },
+  { title: 'Sunum', href: getR2Url('files/15-sahabe-efendilerimizin-faziletleri/sunum.pdf') },
+  { title: 'Kahoot! Soruları', href: getR2Url('files/15-sahabe-efendilerimizin-faziletleri/kahoot.pdf') }
 ]
 const sahabelerinAllahResulullahSevgisiFiles = [
-  { title: 'Ana Çalışma Metni', href: '/files/16-sahabelerin-allah-resulullah-sevgisi/ana-calisma-metni.pdf' },
-  { title: 'Handout', href: '/files/16-sahabelerin-allah-resulullah-sevgisi/handout.pdf' },
-  { title: 'Sunum', href: '/files/16-sahabelerin-allah-resulullah-sevgisi/sunum.pdf' },
-  { title: 'Kahoot! Soruları', href: '/files/16-sahabelerin-allah-resulullah-sevgisi/kahoot.pdf' }
+  { title: 'Ana Çalışma Metni', href: getR2Url('files/16-sahabelerin-allah-resulullah-sevgisi/ana-calisma-metni.pdf') },
+  { title: 'Handout', href: getR2Url('files/16-sahabelerin-allah-resulullah-sevgisi/handout.pdf') },
+  { title: 'Sunum', href: getR2Url('files/16-sahabelerin-allah-resulullah-sevgisi/sunum.pdf') },
+  { title: 'Kahoot! Soruları', href: getR2Url('files/16-sahabelerin-allah-resulullah-sevgisi/kahoot.pdf') }
 ]
 const duaEvradTesbihatFiles = [
-  { title: 'Ana Çalışma Metni', href: '/files/21-dua-evrad-ezkar-tesbihat/ana-calisma-metni.pdf' },
-  { title: 'Handout', href: '/files/21-dua-evrad-ezkar-tesbihat/handout.pdf' },
-  { title: 'Sunum', href: '/files/21-dua-evrad-ezkar-tesbihat/sunum.pdf' },
-  { title: 'Kahoot! Soruları', href: '/files/21-dua-evrad-ezkar-tesbihat/kahoot.pdf' }
+  { title: 'Ana Çalışma Metni', href: getR2Url('files/21-dua-evrad-ezkar-tesbihat/ana-calisma-metni.pdf') },
+  { title: 'Handout', href: getR2Url('files/21-dua-evrad-ezkar-tesbihat/handout.pdf') },
+  { title: 'Sunum', href: getR2Url('files/21-dua-evrad-ezkar-tesbihat/sunum.pdf') },
+  { title: 'Kahoot! Soruları', href: getR2Url('files/21-dua-evrad-ezkar-tesbihat/kahoot.pdf') }
 ]
 const cevsenAshabiBedirTevhidnameFiles = [
-  { title: 'Ana Çalışma Metni', href: '/files/22-cevsen-ashabi-bedir-tevhidname/ana-calisma-metni.pdf' },
-  { title: 'Handout', href: '/files/22-cevsen-ashabi-bedir-tevhidname/handout.pdf' },
-  { title: 'Sunum', href: '/files/22-cevsen-ashabi-bedir-tevhidname/sunum.pdf' },
-  { title: 'Kahoot! Soruları', href: '/files/22-cevsen-ashabi-bedir-tevhidname/kahoot.pdf' }
+  { title: 'Ana Çalışma Metni', href: getR2Url('files/22-cevsen-ashabi-bedir-tevhidname/ana-calisma-metni.pdf') },
+  { title: 'Handout', href: getR2Url('files/22-cevsen-ashabi-bedir-tevhidname/handout.pdf') },
+  { title: 'Sunum', href: getR2Url('files/22-cevsen-ashabi-bedir-tevhidname/sunum.pdf') },
+  { title: 'Kahoot! Soruları', href: getR2Url('files/22-cevsen-ashabi-bedir-tevhidname/kahoot.pdf') }
 ]
 const tevhidDelilleriFiles = [
-  { title: 'Ana Çalışma Metni', href: '/files/05-tevhid-delilleri/ana-calisma-metni.pdf' },
-  { title: 'Handout', href: '/files/05-tevhid-delilleri/handout.pdf' },
-  { title: 'Sunum', href: '/files/05-tevhid-delilleri/sunum.pdf' },
-  { title: 'Videolar', href: '/files/05-tevhid-delilleri/videolar.pdf' },
-  { title: 'Kahoot! Soruları', href: '/files/05-tevhid-delilleri/kahoot.pdf' }
+  { title: 'Ana Çalışma Metni', href: getR2Url('files/05-tevhid-delilleri/ana-calisma-metni.pdf') },
+  { title: 'Handout', href: getR2Url('files/05-tevhid-delilleri/handout.pdf') },
+  { title: 'Sunum', href: getR2Url('files/05-tevhid-delilleri/sunum.pdf') },
+  { title: 'Videolar', href: getR2Url('files/05-tevhid-delilleri/videolar.pdf') },
+  { title: 'Kahoot! Soruları', href: getR2Url('files/05-tevhid-delilleri/kahoot.pdf') }
 ]
 const futuvvetFiles = [
-  { title: 'Ana Çalışma Metni', href: '/files/39-futuvvet/ana-calisma-metni.pdf' },
-  { title: 'Handout', href: '/files/39-futuvvet/handout.pdf' },
-  { title: 'Sunum', href: '/files/39-futuvvet/sunum.pdf' },
-  { title: 'Kahoot! Soruları', href: '/files/39-futuvvet/kahoot.pdf' }
+  { title: 'Ana Çalışma Metni', href: getR2Url('files/39-futuvvet/ana-calisma-metni.pdf') },
+  { title: 'Handout', href: getR2Url('files/39-futuvvet/handout.pdf') },
+  { title: 'Sunum', href: getR2Url('files/39-futuvvet/sunum.pdf') },
+  { title: 'Kahoot! Soruları', href: getR2Url('files/39-futuvvet/kahoot.pdf') }
 ]
 const sadakatVeItaatFiles = [
-  { title: 'Ana Çalışma Metni', href: '/files/38-sadakat-ve-itaat/ana-calisma-metni.pdf' },
-  { title: 'Handout', href: '/files/38-sadakat-ve-itaat/handout.pdf' },
-  { title: 'Sunum', href: '/files/38-sadakat-ve-itaat/sunum.pdf' },
-  { title: 'Kahoot! Soruları', href: '/files/38-sadakat-ve-itaat/kahoot.pdf' }
+  { title: 'Ana Çalışma Metni', href: getR2Url('files/38-sadakat-ve-itaat/ana-calisma-metni.pdf') },
+  { title: 'Handout', href: getR2Url('files/38-sadakat-ve-itaat/handout.pdf') },
+  { title: 'Sunum', href: getR2Url('files/38-sadakat-ve-itaat/sunum.pdf') },
+  { title: 'Kahoot! Soruları', href: getR2Url('files/38-sadakat-ve-itaat/kahoot.pdf') }
 ]
 const comertlikFiles = [
-  { title: 'Ana Çalışma Metni', href: '/files/42-comertlik/ana-calisma-metni.pdf' },
-  { title: 'Handout', href: '/files/42-comertlik/handout.pdf' },
-  { title: 'Sunum', href: '/files/42-comertlik/sunum.pdf' },
-  { title: 'Kahoot! Soruları', href: '/files/42-comertlik/kahoot.pdf' }
+  { title: 'Ana Çalışma Metni', href: getR2Url('files/42-comertlik/ana-calisma-metni.pdf') },
+  { title: 'Handout', href: getR2Url('files/42-comertlik/handout.pdf') },
+  { title: 'Sunum', href: getR2Url('files/42-comertlik/sunum.pdf') },
+  { title: 'Kahoot! Soruları', href: getR2Url('files/42-comertlik/kahoot.pdf') }
 ]
 const mesuliyetSuuruFiles = [
-  { title: 'Ana Çalışma Metni', href: '/files/25-mesuliyet-suuru/ana-calisma-metni.pdf' },
-  { title: 'Handout', href: '/files/25-mesuliyet-suuru/handout.pdf' },
-  { title: 'Sunum', href: '/files/25-mesuliyet-suuru/sunum.pdf' },
-  { title: 'Kahoot! Soruları', href: '/files/25-mesuliyet-suuru/kahoot.pdf' }
+  { title: 'Ana Çalışma Metni', href: getR2Url('files/25-mesuliyet-suuru/ana-calisma-metni.pdf') },
+  { title: 'Handout', href: getR2Url('files/25-mesuliyet-suuru/handout.pdf') },
+  { title: 'Sunum', href: getR2Url('files/25-mesuliyet-suuru/sunum.pdf') },
+  { title: 'Kahoot! Soruları', href: getR2Url('files/25-mesuliyet-suuru/kahoot.pdf') }
 ]
 const hucumatiSitteFiles = [
-  { title: 'Ana Çalışma Metni', href: '/files/29-hucumati-sitte/ana-calisma-metni.pdf' },
-  { title: 'Sorularla Anlatım', href: '/files/29-hucumati-sitte/sorularla-anlatim.pdf' },
-  { title: 'Sunum', href: '/files/29-hucumati-sitte/sunum.pdf' },
-  { title: 'Handout', href: '/files/29-hucumati-sitte/handout.pdf' },
-  { title: 'Kahoot! Soruları', href: '/files/29-hucumati-sitte/kahoot.pdf' }
+  { title: 'Ana Çalışma Metni', href: getR2Url('files/29-hucumati-sitte/ana-calisma-metni.pdf') },
+  { title: 'Sorularla Anlatım', href: getR2Url('files/29-hucumati-sitte/sorularla-anlatim.pdf') },
+  { title: 'Sunum', href: getR2Url('files/29-hucumati-sitte/sunum.pdf') },
+  { title: 'Handout', href: getR2Url('files/29-hucumati-sitte/handout.pdf') },
+  { title: 'Kahoot! Soruları', href: getR2Url('files/29-hucumati-sitte/kahoot.pdf') }
 ]
 const hayaVeIffetFiles = [
-  { title: 'Ana Çalışma Metni', href: '/files/30-haya-ve-iffet/ana-calisma-metni.pdf' },
-  { title: 'Handout', href: '/files/30-haya-ve-iffet/handout.pdf' },
-  { title: 'Sunum', href: '/files/30-haya-ve-iffet/sunum.pdf' },
-  { title: 'Kahoot! Soruları', href: '/files/30-haya-ve-iffet/kahoot.pdf' }
+  { title: 'Ana Çalışma Metni', href: getR2Url('files/30-haya-ve-iffet/ana-calisma-metni.pdf') },
+  { title: 'Handout', href: getR2Url('files/30-haya-ve-iffet/handout.pdf') },
+  { title: 'Sunum', href: getR2Url('files/30-haya-ve-iffet/sunum.pdf') },
+  { title: 'Kahoot! Soruları', href: getR2Url('files/30-haya-ve-iffet/kahoot.pdf') }
 ]
 const sukurVeKanaatFiles = [
-  { title: 'Ana Çalışma Metni', href: '/files/31-sukur-kanaat/ana-calisma-metni.pdf' },
-  { title: 'Handout', href: '/files/31-sukur-kanaat/handout.pdf' },
-  { title: 'Sunum', href: '/files/31-sukur-kanaat/sunum.pdf' },
-  { title: 'Kahoot! Soruları', href: '/files/31-sukur-kanaat/kahoot.pdf' }
+  { title: 'Ana Çalışma Metni', href: getR2Url('files/31-sukur-kanaat/ana-calisma-metni.pdf') },
+  { title: 'Handout', href: getR2Url('files/31-sukur-kanaat/handout.pdf') },
+  { title: 'Sunum', href: getR2Url('files/31-sukur-kanaat/sunum.pdf') },
+  { title: 'Kahoot! Soruları', href: getR2Url('files/31-sukur-kanaat/kahoot.pdf') }
 ]
 const ihlasRisalesiFiles = [
-  { title: 'Ana Çalışma Metni', href: '/files/32-ihlas-risalesi/ana-calisma-metni.pdf' },
-  { title: 'Handout', href: '/files/32-ihlas-risalesi/handout.pdf' },
-  { title: 'Kahoot! Soruları', href: '/files/32-ihlas-risalesi/kahoot.pdf' },
-  { title: 'Sunum 1', href: '/files/32-ihlas-risalesi/sunum-1.pdf' },
-  { title: 'Sunum 2 – 21. Lem’a: İhlas Risalesi', href: '/files/32-ihlas-risalesi/sunum-2.pdf' },
-  { title: '21. Lem’a – İhlas Risalesi', href: '/files/32-ihlas-risalesi/21-lema-ihlas-risalesi.pdf' }
+  { title: 'Ana Çalışma Metni', href: getR2Url('files/32-ihlas-risalesi/ana-calisma-metni.pdf') },
+  { title: 'Handout', href: getR2Url('files/32-ihlas-risalesi/handout.pdf') },
+  { title: 'Kahoot! Soruları', href: getR2Url('files/32-ihlas-risalesi/kahoot.pdf') },
+  { title: 'Sunum 1', href: getR2Url('files/32-ihlas-risalesi/sunum-1.pdf') },
+  { title: 'Sunum 2 – 21. Lem’a: İhlas Risalesi', href: getR2Url('files/32-ihlas-risalesi/sunum-2.pdf') },
+  { title: '21. Lem’a – İhlas Risalesi', href: getR2Url('files/32-ihlas-risalesi/21-lema-ihlas-risalesi.pdf') }
 ]
 const cemaatOlmakFiles = [
-  { title: 'Ana Çalışma Metni', href: '/files/34-cemaat-olmak/ana-calisma-metni.pdf' },
-  { title: 'Handout', href: '/files/34-cemaat-olmak/handout.pdf' },
-  { title: 'Sunum', href: '/files/34-cemaat-olmak/sunum.pdf' },
-  { title: 'Kahoot! Soruları', href: '/files/34-cemaat-olmak/kahoot.pdf' }
+  { title: 'Ana Çalışma Metni', href: getR2Url('files/34-cemaat-olmak/ana-calisma-metni.pdf') },
+  { title: 'Handout', href: getR2Url('files/34-cemaat-olmak/handout.pdf') },
+  { title: 'Sunum', href: getR2Url('files/34-cemaat-olmak/sunum.pdf') },
+  { title: 'Kahoot! Soruları', href: getR2Url('files/34-cemaat-olmak/kahoot.pdf') }
 ]
 const iradeFiles = [
-  { title: 'Ana Çalışma Metni', href: '/files/37-irade/ana-calisma-metni.pdf' },
-  { title: 'Özet', href: '/files/37-irade/ozet.pdf' },
-  { title: 'Sunum', href: '/files/37-irade/sunum.pdf' },
-  { title: 'Kahoot! Soruları', href: '/files/37-irade/kahoot.pdf' }
+  { title: 'Ana Çalışma Metni', href: getR2Url('files/37-irade/ana-calisma-metni.pdf') },
+  { title: 'Özet', href: getR2Url('files/37-irade/ozet.pdf') },
+  { title: 'Sunum', href: getR2Url('files/37-irade/sunum.pdf') },
+  { title: 'Kahoot! Soruları', href: getR2Url('files/37-irade/kahoot.pdf') }
 ]
 const tefekkurKulluktaDerinlesmeFiles = [
-  { title: 'Ana Çalışma Metni', href: '/files/45-tefekkur-kullukta-derinlesme/ana-calisma-metni.pdf' },
-  { title: 'Handout', href: '/files/45-tefekkur-kullukta-derinlesme/handout.pdf' },
-  { title: 'Sorular', href: '/files/45-tefekkur-kullukta-derinlesme/sorular.pdf' },
-  { title: 'Sunum', href: '/files/45-tefekkur-kullukta-derinlesme/sunum.pdf' }
+  { title: 'Ana Çalışma Metni', href: getR2Url('files/45-tefekkur-kullukta-derinlesme/ana-calisma-metni.pdf') },
+  { title: 'Handout', href: getR2Url('files/45-tefekkur-kullukta-derinlesme/handout.pdf') },
+  { title: 'Sorular', href: getR2Url('files/45-tefekkur-kullukta-derinlesme/sorular.pdf') },
+  { title: 'Sunum', href: getR2Url('files/45-tefekkur-kullukta-derinlesme/sunum.pdf') }
 ]
 
 const specialDayTopics = [
