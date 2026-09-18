@@ -34,6 +34,46 @@ export function sortCurriculumTopics(topics: CurriculumTopic[]): CurriculumTopic
   })
 }
 
+/**
+ * Transforms Turkish strings into beautiful Turkish Title Case
+ */
+export function formatTurkishTitle(input: string): string {
+  if (!input) return ''
+
+  const str = input
+    .replace(/KUR_AN/gi, "Kur’an")
+    .replace(/KUR-AN/gi, "Kur’an")
+    .replace(/_/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+  const lowerConjunctions = new Set(['ve', 'ile', 'veya', 'de', 'da', 'ki', 'için', 'ya', 'yahut'])
+
+  const words = str.split(' ')
+  const formattedWords = words.map((word, index) => {
+    if (!word) return ''
+
+    const lowerWord = word.toLocaleLowerCase('tr-TR')
+
+    if (index > 0 && lowerConjunctions.has(lowerWord)) {
+      return lowerWord
+    }
+
+    if (/^kur['’`]?an/i.test(word)) {
+      return word.replace(/^kur['’`]?an/i, 'Kur’an')
+    }
+    if (/^allah/i.test(word)) {
+      return word.replace(/^allah/i, 'Allah')
+    }
+
+    const firstChar = word.charAt(0).toLocaleUpperCase('tr-TR')
+    const restChars = word.slice(1).toLocaleLowerCase('tr-TR')
+    return firstChar + restChars
+  })
+
+  return formattedWords.join(' ')
+}
+
 export function normalizeSiteContent(content: SiteContent): SiteContent {
   if (content && content.curriculumTopics) {
     for (const step of Object.keys(content.curriculumTopics)) {

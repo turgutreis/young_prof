@@ -503,7 +503,7 @@ import { ref, computed, onMounted } from 'vue'
 import type { SiteContent, CurriculumTopic, CurriculumFile } from '~/types'
 import { getInitialSiteContent } from '~/data/initial-content'
 import { curriculumSteps } from '~/data/curriculum'
-import { sortCurriculumTopics } from '~/utils/r2'
+import { sortCurriculumTopics, formatTurkishTitle } from '~/utils/r2'
 
 useSeoMeta({
   title: 'Yönetici Paneli · Young Professionals EU',
@@ -736,12 +736,14 @@ function parseFolderName(rawName: string): { no: string; title: string; slug: st
   if (match) {
     const no = match[1].padStart(2, '0')
     const rawTitle = match[2].trim() || `Konu ${no}`
-    const slug = `${no}-${rawTitle.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-')}`
-    return { no, title: rawTitle, slug }
+    const title = formatTurkishTitle(rawTitle)
+    const slug = `${no}-${title.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-')}`
+    return { no, title, slug }
   }
 
-  const slug = rawName.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-')
-  return { no: '✦', title: rawName, slug }
+  const title = formatTurkishTitle(rawName)
+  const slug = title.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-')
+  return { no: '✦', title, slug }
 }
 
 async function handleFolderSelect(e: Event) {

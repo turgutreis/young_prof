@@ -1,5 +1,5 @@
 import { S3Client, ListObjectsV2Command } from '@aws-sdk/client-s3'
-import { getS3Client } from '~/server/utils/r2'
+import { getS3Client, formatTurkishTitle } from '~/server/utils/r2'
 import type { CurriculumTopic, CurriculumFile } from '~/types'
 
 export default defineEventHandler(async (event) => {
@@ -138,13 +138,12 @@ function parseFolderSlug(slug: string): { no: string; title: string } {
   if (match) {
     const no = match[1].padStart(2, '0')
     const rawTitle = match[2].replace(/[-_]/g, ' ').trim()
-    const title = rawTitle ? rawTitle.charAt(0).toUpperCase() + rawTitle.slice(1) : `Konu ${no}`
+    const title = rawTitle ? formatTurkishTitle(rawTitle) : `Konu ${no}`
     return { no, title }
   }
 
   // Non-numbered folder (e.g. kurban, ramazan)
-  const formatted = slug.replace(/[-_]/g, ' ')
-  const title = formatted.charAt(0).toUpperCase() + formatted.slice(1)
+  const title = formatTurkishTitle(slug.replace(/[-_]/g, ' '))
   return { no: '✦', title }
 }
 
