@@ -4,7 +4,7 @@ import { createTopicFiles, getR2Url } from '~/utils/r2'
 export const curriculumSteps: CurriculumStep[] = ['A', 'B', 'C', 'ÖZEL GÜNLER']
 
 /**
- * Category A Topics (14 topics)
+ * Category A Topics (19 topics total, sorted by number)
  */
 export const categoryATopics: CurriculumTopic[] = [
   {
@@ -23,9 +23,24 @@ export const categoryATopics: CurriculumTopic[] = [
     files: createTopicFiles('22-cevsen-ashabi-bedir-tevhidname')
   },
   {
+    no: '23',
+    title: 'Kur’an Okuma ve Kur’an ile Olması Gereken İrtibatımız',
+    files: createTopicFiles('23-kuran-okuma-ve-kuran-ile-olmasi-gereken-irtibatimiz')
+  },
+  {
+    no: '24',
+    title: 'İrşad ve Tebliğ',
+    files: createTopicFiles('24-irsad-ve-teblig')
+  },
+  {
     no: '25',
     title: 'Mesuliyet Şuuru',
     files: createTopicFiles('25-mesuliyet-suuru')
+  },
+  {
+    no: '26',
+    title: 'Vefa ve Fedakarlık',
+    files: createTopicFiles('26-vefa-ve-fedakarlik')
   },
   {
     no: '29',
@@ -81,6 +96,11 @@ export const categoryATopics: CurriculumTopic[] = [
     files: createTopicFiles('39-futuvvet')
   },
   {
+    no: '40',
+    title: 'Sabır ve Sebat',
+    files: createTopicFiles('40-sabir-ve-sebat')
+  },
+  {
     no: '42',
     title: 'Cömertlik',
     files: createTopicFiles('42-comertlik')
@@ -94,13 +114,23 @@ export const categoryATopics: CurriculumTopic[] = [
       { title: 'Sorular', href: getR2Url('files/45-tefekkur-kullukta-derinlesme/sorular.pdf') },
       { title: 'Sunum', href: getR2Url('files/45-tefekkur-kullukta-derinlesme/sunum.pdf') }
     ]
+  },
+  {
+    no: '46',
+    title: 'Vefa Hissi ile Kulluğa Devam',
+    files: createTopicFiles('46-vefa-hissi-ile-kulluga-devam')
   }
 ]
 
 /**
- * Category B Topics (9 topics)
+ * Category B Topics (14 topics total, sorted by number)
  */
 export const categoryBTopics: CurriculumTopic[] = [
+  {
+    no: '02',
+    title: 'İman',
+    files: createTopicFiles('02-iman')
+  },
   {
     no: '03',
     title: 'Allah’a İman',
@@ -121,6 +151,21 @@ export const categoryBTopics: CurriculumTopic[] = [
     no: '06',
     title: 'Peygamberlere İman',
     files: createTopicFiles('06-peygamberlere-iman')
+  },
+  {
+    no: '07',
+    title: 'Peygamber ve Tevhid Uğruna Katlandıkları',
+    files: createTopicFiles('07-peygamber-ve-tevhid-ugruna-katlandiklari')
+  },
+  {
+    no: '09',
+    title: 'Ölüm ve Berzah Hayatı',
+    files: createTopicFiles('09-olum-ve-berzah-hayati')
+  },
+  {
+    no: '10',
+    title: 'Cennet ve Cehennem',
+    files: createTopicFiles('10-cennet-ve-cehennem')
   },
   {
     no: '11',
@@ -149,6 +194,11 @@ export const categoryBTopics: CurriculumTopic[] = [
     files: createTopicFiles('16-sahabelerin-allah-resulullah-sevgisi')
   },
   {
+    no: '17',
+    title: 'Kulluk ve İbadet Sorumluluğu',
+    files: createTopicFiles('17-kulluk-ve-ibadet-sorumlulugu')
+  },
+  {
     no: '19',
     title: 'Namaz',
     files: createTopicFiles('19-namaz')
@@ -161,22 +211,22 @@ export const categoryBTopics: CurriculumTopic[] = [
 ]
 
 /**
- * Category C Topics (Prepared placeholder)
+ * Category C Topics
  */
 export const categoryCTopics: CurriculumTopic[] = [
   { no: '01', title: 'C Kategorisi Programı', files: [] }
 ]
 
 /**
- * Special Days / Festtage Topics (Kandiller, Ramazan, Kurban, etc.)
+ * Special Days Topics
  */
 export const specialDayTopics: CurriculumTopic[] = [
-  { no: '01', title: 'Kandiller', files: [] },
-  { no: '02', title: 'Ramazan', files: [] },
-  { no: '03', title: 'Kurban', files: [] },
-  { no: '04', title: 'Weihnachten', files: [] },
-  { no: '05', title: 'Ostern', files: [] },
-  { no: '06', title: 'Pfingsten', files: [] }
+  { no: '01', title: 'Kandiller', files: createTopicFiles('kandiller') },
+  { no: '02', title: 'Ramazan', files: createTopicFiles('ramazan') },
+  { no: '03', title: 'Kurban', files: createTopicFiles('kurban') },
+  { no: '04', title: 'Weihnachten', files: createTopicFiles('weihnachten') },
+  { no: '05', title: 'Ostern', files: createTopicFiles('ostern') },
+  { no: '06', title: 'Pfingsten', files: createTopicFiles('pfingsten') }
 ]
 
 /**
