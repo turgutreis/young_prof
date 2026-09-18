@@ -1,4 +1,4 @@
-import type { CurriculumFile } from '~/types'
+import type { CurriculumFile, CurriculumTopic } from '~/types'
 
 /**
  * Builds the URL to stream or download a file from Cloudflare R2 via the server proxy
@@ -6,6 +6,35 @@ import type { CurriculumFile } from '~/types'
 export function getR2Url(key: string, download = false): string {
   const cleanKey = key.replace(/^\//, '')
   return `/api/sohbets/stream?key=${encodeURIComponent(cleanKey)}${download ? '&download=true' : ''}`
+}
+
+/**
+ * Numerically sorts an array of curriculum topics by their 'no' property.
+ * Handles numbers ('01', '23'), alphanumerics ('02a'), and symbols cleanly.
+ */
+export function sortCurriculumTopics(topics: CurriculumTopic[]): CurriculumTopic[] {
+  if (!topics || !Array.isArray(topics)) return []
+  return [...topics].sort((a, b) => {
+    const cleanA = (a.no || '').trim()
+    const cleanB = (b.no || '').trim()
+
+    const matchA = cleanA.match(/^(\d+)/)
+    const matchB = cleanB.match(/^(\d+)/)
+
+    if (matchA && matchB) {
+      const numA = parseInt(matchA[1], 10)
+      const numB = parseInt(matchB[1], 10)
+      if (numA !== numB) {
+        return numA - numB
+      }
+      return cleanA.localeCompare(cleanB, undefined, { numeric: true, sensitivity: 'base' })
+    }
+
+    if (matchA) return -1
+    if (matchB) return 1
+
+    return cleanA.localeCompare(cleanB, undefined, { numeric: true, sensitivity: 'base' })
+  })
 }
 
 export interface TopicFileOptions {

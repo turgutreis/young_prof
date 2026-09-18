@@ -4,10 +4,46 @@ import {
   PutObjectCommand,
   HeadObjectCommand
 } from '@aws-sdk/client-s3'
-import type { SiteContent } from '~/types'
+import type { SiteContent, CurriculumTopic } from '~/types'
 import { getInitialSiteContent } from '~/data/initial-content'
 
 const CONTENT_FILE_KEY = 'site-content.json'
+
+export function sortCurriculumTopics(topics: CurriculumTopic[]): CurriculumTopic[] {
+  if (!topics || !Array.isArray(topics)) return []
+  return [...topics].sort((a, b) => {
+    const cleanA = (a.no || '').trim()
+    const cleanB = (b.no || '').trim()
+
+    const matchA = cleanA.match(/^(\d+)/)
+    const matchB = cleanB.match(/^(\d+)/)
+
+    if (matchA && matchB) {
+      const numA = parseInt(matchA[1], 10)
+      const numB = parseInt(matchB[1], 10)
+      if (numA !== numB) {
+        return numA - numB
+      }
+      return cleanA.localeCompare(cleanB, undefined, { numeric: true, sensitivity: 'base' })
+    }
+
+    if (matchA) return -1
+    if (matchB) return 1
+
+    return cleanA.localeCompare(cleanB, undefined, { numeric: true, sensitivity: 'base' })
+  })
+}
+
+export function normalizeSiteContent(content: SiteContent): SiteContent {
+  if (content && content.curriculumTopics) {
+    for (const step of Object.keys(content.curriculumTopics)) {
+      if (Array.isArray((content.curriculumTopics as any)[step])) {
+        ;(content.curriculumTopics as any)[step] = sortCurriculumTopics((content.curriculumTopics as any)[step])
+      }
+    }
+  }
+  return content
+}
 
 export function getS3Client(config: any) {
   if (!config.r2AccessKeyId || !config.r2SecretAccessKey) {
@@ -42,12 +78,12 @@ export async function getSiteContentFromR2(config: any): Promise<SiteContent> {
     if (response.Body) {
       const text = await response.Body.transformToString()
       const parsed = JSON.parse(text)
-      return parsed as SiteContent
+      return normalizeSiteContent(parsed as SiteContent)
     }
   } catch (err: any) {
     // If NoSuchKey, initialize R2 with initial content
     if (err.name === 'NoSuchKey' || err.$metadata?.httpStatusCode === 404) {
-      const initial = getInitialSiteContent()
+      const initial = normalizeSiteContent(getInitialSiteContent())
       try {
         await saveSiteContentToR2(config, initial)
       } catch (saveErr) {
@@ -58,7 +94,7 @@ export async function getSiteContentFromR2(config: any): Promise<SiteContent> {
     console.error('Error fetching site-content.json from R2:', err)
   }
 
-  return getInitialSiteContent()
+  return normalizeSiteContent(getInitialSiteContent())
 }
 
 /**
@@ -73,6 +109,7 @@ export async function saveSiteContentToR2(config: any, content: SiteContent): Pr
     })
   }
 
+  normalizeSiteContent(content)
   content.lastUpdated = new Date().toISOString()
   const body = Buffer.from(JSON.stringify(content, null, 2), 'utf-8')
 

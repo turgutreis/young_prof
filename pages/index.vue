@@ -687,6 +687,7 @@ import type { SohbetFile } from '~/server/api/sohbets/index.get'
 import type { SiteContent } from '~/types'
 import { getInitialSiteContent } from '~/data/initial-content'
 import { curriculumSteps } from '~/data/curriculum'
+import { sortCurriculumTopics } from '~/utils/r2'
 
 useSeoMeta({
   title: 'Young Professionals EU · Gençlik Bilgi ve Tecrübe Paylaşım Platformu',
@@ -756,7 +757,8 @@ const openActivityPlatform = ref<string | null>('Genç Aile')
 
 const currentTopics = computed(() => {
   if (!openStep.value) return []
-  return (curriculumTopicsData.value as any)[openStep.value] || []
+  const list = (curriculumTopicsData.value as any)[openStep.value] || []
+  return sortCurriculumTopics(list)
 })
 
 const previewModalOpen = ref(false)

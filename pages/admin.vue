@@ -172,9 +172,14 @@
 
             <!-- Topic Actions Toolbar -->
             <div class="topicToolbar">
-              <button class="addBtn" @click="openNewEmptyTopic">
-                ＋ Boş Konu Ekle ({{ selectedStep }} Basamağı)
-              </button>
+              <div class="topicToolbarLeft">
+                <button class="addBtn" @click="openNewEmptyTopic">
+                  ＋ Boş Konu Ekle ({{ selectedStep }} Basamağı)
+                </button>
+                <button class="sortBtn" @click="autoSortCurrentStep" title="Konuları numaralarına göre küçükten büyüğe sıralar">
+                  🔢 Numaraya Göre Sırala
+                </button>
+              </div>
               <span class="countBadge">
                 Toplam {{ currentStepTopics.length }} Konu Listeleniyor
               </span>
@@ -498,6 +503,7 @@ import { ref, computed, onMounted } from 'vue'
 import type { SiteContent, CurriculumTopic, CurriculumFile } from '~/types'
 import { getInitialSiteContent } from '~/data/initial-content'
 import { curriculumSteps } from '~/data/curriculum'
+import { sortCurriculumTopics } from '~/utils/r2'
 
 useSeoMeta({
   title: 'Yönetici Paneli · Young Professionals EU',
@@ -546,6 +552,29 @@ const currentStepTopics = computed<CurriculumTopic[]>({
   }
 })
 
+function sortAllCurriculumSteps(target: SiteContent = content.value) {
+  if (target && target.curriculumTopics) {
+    for (const step of Object.keys(target.curriculumTopics)) {
+      if (Array.isArray((target.curriculumTopics as any)[step])) {
+        ;(target.curriculumTopics as any)[step] = sortCurriculumTopics(
+          (target.curriculumTopics as any)[step]
+        )
+      }
+    }
+  }
+}
+
+function autoSortCurrentStep() {
+  if (content.value.curriculumTopics && (content.value.curriculumTopics as any)[selectedStep.value]) {
+    (content.value.curriculumTopics as any)[selectedStep.value] = sortCurriculumTopics(
+      (content.value.curriculumTopics as any)[selectedStep.value]
+    )
+    feedbackType.value = 'success'
+    feedbackMsg.value = `"${selectedStep.value}" basamağındaki konular numaralarına göre sıralandı!`
+    setTimeout(() => { feedbackMsg.value = '' }, 3000)
+  }
+}
+
 // Lifecycle
 onMounted(async () => {
   const storedPass = localStorage.getItem('yp_admin_pass')
@@ -589,6 +618,7 @@ async function loadContent() {
   try {
     const data = await $fetch<SiteContent>('/api/content')
     if (data) {
+      sortAllCurriculumSteps(data)
       content.value = data
     }
   } catch (err) {
@@ -601,6 +631,8 @@ async function saveChanges() {
   feedbackMsg.value = ''
 
   try {
+    sortAllCurriculumSteps()
+
     const res = await $fetch<{ success: boolean; message: string }>('/api/admin/content', {
       method: 'POST',
       headers: {
@@ -791,6 +823,7 @@ async function uploadFilesToTopic(files: File[], no: string, title: string, slug
   }
 
   isUploadingBatch.value = false
+  autoSortCurrentStep()
   feedbackType.value = 'success'
   feedbackMsg.value = `"${title}" konusu ve ${files.length} dosya başarıyla R2'ye yüklendi!`
   setTimeout(() => { feedbackMsg.value = '' }, 4000)
@@ -897,6 +930,7 @@ function openNewEmptyTopic() {
     title: 'Yeni Konu Başlığı',
     files: []
   })
+  autoSortCurrentStep()
 }
 
 // ==========================================
@@ -1447,6 +1481,12 @@ input:focus, textarea:focus, select:focus {
   margin-bottom: 1.5rem;
 }
 
+.topicToolbarLeft {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
 .addBtn {
   background: #1e293b;
   color: #94a3b8;
@@ -1456,10 +1496,28 @@ input:focus, textarea:focus, select:focus {
   font-weight: 600;
   cursor: pointer;
   font-size: 0.9rem;
+  transition: all 0.2s;
 }
 
 .addBtn:hover {
   background: #334155;
+  color: #fff;
+}
+
+.sortBtn {
+  background: #1e293b;
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  padding: 0.6rem 1.1rem;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.88rem;
+  transition: all 0.2s;
+}
+
+.sortBtn:hover {
+  background: #0284c7;
   color: #fff;
 }
 
