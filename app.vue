@@ -691,6 +691,21 @@
 <script setup lang="ts">
 import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
 import type { SohbetFile } from '~/server/api/sohbets/index.get'
+import { categories } from '~/data/categories'
+import { curriculumSteps, curriculumTopics } from '~/data/curriculum'
+import { readingPlanBooks } from '~/data/library'
+import { activityPlatforms } from '~/data/activities'
+import {
+  hamburgFood,
+  hamburgStops,
+  hamburgMosques,
+  hamburgInstitutions,
+  frankfurtFood,
+  frankfurtStops,
+  frankfurtInstitutions,
+  frankfurtPrayer
+} from '~/data/cityGuides'
+import { getR2Url } from '~/utils/r2'
 
 useSeoMeta({
   title: 'Young Professionals EU · Gençlik Bilgi ve Tecrübe Paylaşım Platformu',
@@ -744,6 +759,10 @@ const openReadingPlan = ref(true)
 const openCity = ref<string | null>(null)
 const openGuideSection = ref<string | null>('hamburg-places')
 const openActivityPlatform = ref<string | null>('Genç Aile')
+
+const currentTopics = computed(() => {
+  return openStep.value ? (curriculumTopics[openStep.value as keyof typeof curriculumTopics] || []) : []
+})
 
 const previewModalOpen = ref(false)
 const selectedPreviewFile = ref<SohbetFile | null>(null)
@@ -806,11 +825,6 @@ function toggleActivityPlatform(platform: string) {
   openActivityPlatform.value = openActivityPlatform.value === platform ? null : platform
 }
 
-function getR2Url(key: string, download = false) {
-  const cleanKey = key.replace(/^\//, '')
-  return `/api/sohbets/stream?key=${encodeURIComponent(cleanKey)}${download ? '&download=true' : ''}`
-}
-
 function openPdf(file: any) {
   let fileKey = file.key || ''
   if (!fileKey && file.href) {
@@ -843,364 +857,4 @@ function openPdf(file: any) {
 function playAudio(file: any) {
   activeTrack.value = file
 }
-
-// Master Data definition matching legacy_code exactly
-const categories = [
-  {
-    id: 'curriculum',
-    no: '01',
-    title: 'Müfredat',
-    text: 'Adım adım gelişim programları ve dönem planları',
-    tone: 'curriculumBlue',
-    icon: '✦'
-  },
-  {
-    id: 'books',
-    no: '02',
-    title: 'Kütüphane',
-    text: 'Kitap tavsiyeleri, seçilmiş okumalar ve özetler',
-    tone: 'lime',
-    icon: '⌁'
-  },
-  {
-    id: 'activities',
-    no: '03',
-    title: 'Aktiviteler / Ünite Çalışmaları',
-    text: 'Grup çalışmaları, atölyeler ve uygulanabilir etkinlikler',
-    tone: 'violet',
-    icon: '◎'
-  },
-  {
-    id: 'routes',
-    no: '04',
-    title: 'Gezi Güzergâhları',
-    text: 'Kültür, tarih ve doğayı keşfetmek için hazır rotalar',
-    tone: 'routesGreen',
-    icon: '↗'
-  },
-  {
-    id: 'news',
-    no: '05',
-    title: 'Duyurular',
-    text: 'Yeni programlar, buluşmalar ve önemli tarihler',
-    tone: 'yellow',
-    icon: '!'
-  }
-]
-
-const curriculumSteps = ['A', 'B', 'C', 'ÖZEL GÜNLER']
-
-const activityPlatforms = [
-  'Gençlik Açılım ve Diyalog Platformu',
-  'Gençlik Okuma Kulübü',
-  'Genç İş İnsanları Platformu',
-  'Genç Aile',
-  'Genç Spor-Aktivite Platformu'
-]
-
-const readingPlanBooks = [
-  {
-    title: "Kur’an’ın Sihirli Ufku: Fatiha ve Bakara Suresi (1–39)",
-    author: 'M. Fethullah Gülen',
-    cover: getR2Url('books/2026-27/fatiha-bakara.png'),
-    href: 'https://kitapdunyasi.eu/products/kuranin-sihirli-ufku-fatiha-ve-bakara-suresi-1-39'
-  },
-  {
-    title: 'Adanmış Bir Gönül İnsanı: Hacı Ata',
-    author: 'Muhittin Küçük',
-    cover: getR2Url('books/2026-27/haci-ata.png'),
-    href: 'https://kitapdunyasi.eu/products/adanmis-bir-gonul-i̇nsani-haci-ata'
-  },
-  {
-    title: 'Das Hauptgebet – Mein Augenlicht',
-    author: 'Şerif Özcan',
-    cover: getR2Url('books/2026-27/das-hauptgebet.png'),
-    href: 'https://kitapdunyasi.eu/collections/yeni-cikanlar/products/das-hauptgebet-mein-augenlicht'
-  },
-  {
-    title: 'Gençlik Rehberi Üzerine',
-    author: 'Bediüzzaman Said Nursî · Açıklamalar: Abdullah Aymaz',
-    cover: getR2Url('books/2026-27/genclik-rehberi.png'),
-    href: 'https://kitapdunyasi.eu/products/genclik-rehberi-uzerine-sureyya?_pos=2&_sid=c1694656b&_ss=r'
-  },
-  {
-    title: 'İnsan Neyle Yaşar?',
-    author: 'L. N. Tolstoy',
-    cover: getR2Url('books/2026-27/insan-neyle-yasar.png'),
-    href: 'https://kitapdunyasi.eu/products/i̇nsan-neyle-yasar-karton-kapak?_pos=2&_sid=18edda30d&_ss=r'
-  },
-  {
-    title: 'Yayınlanmayan Lâhika Mektuplarından Seçmeler',
-    author: 'Bediüzzaman Said Nursî',
-    cover: getR2Url('books/2026-27/yayinlanmayan-lahika-mektuplari.png'),
-    href: 'https://kitapdunyasi.eu/products/yayinlanmayan-lahika-mektuplari?_pos=1&_sid=c97367bb2&_ss=r'
-  },
-  {
-    title: '40 Hadithe – Essenzielle Lehren des Propheten Muhammed',
-    author: 'Mit Kommentar von Esat Mavinehir',
-    cover: getR2Url('books/2026-27/40-hadithe.png'),
-    href: 'https://kitapdunyasi.eu/products/40-hadithe-essenzielle-lehren-des-propheten-muhammed?_pos=1&_sid=2c744cd93&_ss=r'
-  }
-]
-
-// Step A, B, C, Özel Günler Files (Loaded from Cloudflare R2)
-const sohbetiCananFiles = [
-  { title: 'Ana Çalışma Metni', href: getR2Url('files/01-sohbet-i-canan/ana-calisma-metni.pdf') },
-  { title: 'Handout', href: getR2Url('files/01-sohbet-i-canan/handout.pdf') },
-  { title: 'Sunum', href: getR2Url('files/01-sohbet-i-canan/sunum.pdf') },
-  { title: 'Kahoot! Soruları', href: getR2Url('files/01-sohbet-i-canan/kahoot.pdf') }
-]
-const allahaImanFiles = [
-  { title: 'Ana Çalışma Metni', href: getR2Url('files/03-allaha-iman/ana-calisma-metni.pdf') },
-  { title: 'Handout', href: getR2Url('files/03-allaha-iman/handout.pdf') },
-  { title: 'Sunum', href: getR2Url('files/03-allaha-iman/sunum.pdf') },
-  { title: 'Kahoot! Soruları', href: getR2Url('files/03-allaha-iman/kahoot.pdf') }
-]
-const peygamberlereImanFiles = [
-  { title: 'Ana Çalışma Metni', href: getR2Url('files/06-peygamberlere-iman/ana-calisma-metni.pdf') },
-  { title: 'Handout', href: getR2Url('files/06-peygamberlere-iman/handout.pdf') },
-  { title: 'Kahoot! Soruları', href: getR2Url('files/06-peygamberlere-iman/kahoot.pdf') },
-  { title: 'Sunum', href: getR2Url('files/06-peygamberlere-iman/sunum.pdf') }
-]
-const namazFiles = [
-  { title: 'Ana Çalışma Metni', href: getR2Url('files/19-namaz/ana-calisma-metni.pdf') },
-  { title: 'Handout', href: getR2Url('files/19-namaz/handout.pdf') },
-  { title: 'Sunum', href: getR2Url('files/19-namaz/sunum.pdf') },
-  { title: 'Kahoot! Soruları', href: getR2Url('files/19-namaz/kahoot.pdf') }
-]
-const isYogunluguNamazHirsizligiFiles = [
-  { title: 'Ana Çalışma Metni', href: getR2Url('files/20-is-yogunlugu-namaz-hirsizligi/ana-calisma-metni.pdf') },
-  { title: 'Özet', href: getR2Url('files/20-is-yogunlugu-namaz-hirsizligi/ozet.pdf') },
-  { title: 'Sunum', href: getR2Url('files/20-is-yogunlugu-namaz-hirsizligi/sunum.pdf') },
-  { title: 'Kahoot! Soruları', href: getR2Url('files/20-is-yogunlugu-namaz-hirsizligi/kahoot.pdf') }
-]
-const nubuvveteDelillerFiles = [
-  { title: 'Ana Çalışma Metni', href: getR2Url('files/11-nubuvvete-deliller/ana-calisma-metni.pdf') },
-  { title: 'Handout', href: getR2Url('files/11-nubuvvete-deliller/handout.pdf') },
-  { title: 'Sunum', href: getR2Url('files/11-nubuvvete-deliller/sunum.pdf') },
-  { title: 'Kahoot! Soruları', href: getR2Url('files/11-nubuvvete-deliller/kahoot.pdf') }
-]
-const semailAhlakAdabFiles = [
-  { title: 'Ana Çalışma Metni', href: getR2Url('files/13-semail-ahlak-adab/ana-calisma-metni.pdf') },
-  { title: 'Handout 1', href: getR2Url('files/13-semail-ahlak-adab/handout-1.pdf') },
-  { title: 'Handout 2', href: getR2Url('files/13-semail-ahlak-adab/handout-2.pdf') },
-  { title: 'Sunum', href: getR2Url('files/13-semail-ahlak-adab/sunum.pdf') },
-  { title: 'Kahoot! Soruları', href: getR2Url('files/13-semail-ahlak-adab/kahoot.pdf') }
-]
-const sahabeFaziletleriFiles = [
-  { title: 'Ana Çalışma Metni', href: getR2Url('files/15-sahabe-efendilerimizin-faziletleri/ana-calisma-metni.pdf') },
-  { title: 'Handout', href: getR2Url('files/15-sahabe-efendilerimizin-faziletleri/handout.pdf') },
-  { title: 'Sunum', href: getR2Url('files/15-sahabe-efendilerimizin-faziletleri/sunum.pdf') },
-  { title: 'Kahoot! Soruları', href: getR2Url('files/15-sahabe-efendilerimizin-faziletleri/kahoot.pdf') }
-]
-const sahabelerinAllahResulullahSevgisiFiles = [
-  { title: 'Ana Çalışma Metni', href: getR2Url('files/16-sahabelerin-allah-resulullah-sevgisi/ana-calisma-metni.pdf') },
-  { title: 'Handout', href: getR2Url('files/16-sahabelerin-allah-resulullah-sevgisi/handout.pdf') },
-  { title: 'Sunum', href: getR2Url('files/16-sahabelerin-allah-resulullah-sevgisi/sunum.pdf') },
-  { title: 'Kahoot! Soruları', href: getR2Url('files/16-sahabelerin-allah-resulullah-sevgisi/kahoot.pdf') }
-]
-const duaEvradTesbihatFiles = [
-  { title: 'Ana Çalışma Metni', href: getR2Url('files/21-dua-evrad-ezkar-tesbihat/ana-calisma-metni.pdf') },
-  { title: 'Handout', href: getR2Url('files/21-dua-evrad-ezkar-tesbihat/handout.pdf') },
-  { title: 'Sunum', href: getR2Url('files/21-dua-evrad-ezkar-tesbihat/sunum.pdf') },
-  { title: 'Kahoot! Soruları', href: getR2Url('files/21-dua-evrad-ezkar-tesbihat/kahoot.pdf') }
-]
-const cevsenAshabiBedirTevhidnameFiles = [
-  { title: 'Ana Çalışma Metni', href: getR2Url('files/22-cevsen-ashabi-bedir-tevhidname/ana-calisma-metni.pdf') },
-  { title: 'Handout', href: getR2Url('files/22-cevsen-ashabi-bedir-tevhidname/handout.pdf') },
-  { title: 'Sunum', href: getR2Url('files/22-cevsen-ashabi-bedir-tevhidname/sunum.pdf') },
-  { title: 'Kahoot! Soruları', href: getR2Url('files/22-cevsen-ashabi-bedir-tevhidname/kahoot.pdf') }
-]
-const tevhidDelilleriFiles = [
-  { title: 'Ana Çalışma Metni', href: getR2Url('files/05-tevhid-delilleri/ana-calisma-metni.pdf') },
-  { title: 'Handout', href: getR2Url('files/05-tevhid-delilleri/handout.pdf') },
-  { title: 'Sunum', href: getR2Url('files/05-tevhid-delilleri/sunum.pdf') },
-  { title: 'Videolar', href: getR2Url('files/05-tevhid-delilleri/videolar.pdf') },
-  { title: 'Kahoot! Soruları', href: getR2Url('files/05-tevhid-delilleri/kahoot.pdf') }
-]
-const futuvvetFiles = [
-  { title: 'Ana Çalışma Metni', href: getR2Url('files/39-futuvvet/ana-calisma-metni.pdf') },
-  { title: 'Handout', href: getR2Url('files/39-futuvvet/handout.pdf') },
-  { title: 'Sunum', href: getR2Url('files/39-futuvvet/sunum.pdf') },
-  { title: 'Kahoot! Soruları', href: getR2Url('files/39-futuvvet/kahoot.pdf') }
-]
-const sadakatVeItaatFiles = [
-  { title: 'Ana Çalışma Metni', href: getR2Url('files/38-sadakat-ve-itaat/ana-calisma-metni.pdf') },
-  { title: 'Handout', href: getR2Url('files/38-sadakat-ve-itaat/handout.pdf') },
-  { title: 'Sunum', href: getR2Url('files/38-sadakat-ve-itaat/sunum.pdf') },
-  { title: 'Kahoot! Soruları', href: getR2Url('files/38-sadakat-ve-itaat/kahoot.pdf') }
-]
-const comertlikFiles = [
-  { title: 'Ana Çalışma Metni', href: getR2Url('files/42-comertlik/ana-calisma-metni.pdf') },
-  { title: 'Handout', href: getR2Url('files/42-comertlik/handout.pdf') },
-  { title: 'Sunum', href: getR2Url('files/42-comertlik/sunum.pdf') },
-  { title: 'Kahoot! Soruları', href: getR2Url('files/42-comertlik/kahoot.pdf') }
-]
-const mesuliyetSuuruFiles = [
-  { title: 'Ana Çalışma Metni', href: getR2Url('files/25-mesuliyet-suuru/ana-calisma-metni.pdf') },
-  { title: 'Handout', href: getR2Url('files/25-mesuliyet-suuru/handout.pdf') },
-  { title: 'Sunum', href: getR2Url('files/25-mesuliyet-suuru/sunum.pdf') },
-  { title: 'Kahoot! Soruları', href: getR2Url('files/25-mesuliyet-suuru/kahoot.pdf') }
-]
-const hucumatiSitteFiles = [
-  { title: 'Ana Çalışma Metni', href: getR2Url('files/29-hucumati-sitte/ana-calisma-metni.pdf') },
-  { title: 'Sorularla Anlatım', href: getR2Url('files/29-hucumati-sitte/sorularla-anlatim.pdf') },
-  { title: 'Sunum', href: getR2Url('files/29-hucumati-sitte/sunum.pdf') },
-  { title: 'Handout', href: getR2Url('files/29-hucumati-sitte/handout.pdf') },
-  { title: 'Kahoot! Soruları', href: getR2Url('files/29-hucumati-sitte/kahoot.pdf') }
-]
-const hayaVeIffetFiles = [
-  { title: 'Ana Çalışma Metni', href: getR2Url('files/30-haya-ve-iffet/ana-calisma-metni.pdf') },
-  { title: 'Handout', href: getR2Url('files/30-haya-ve-iffet/handout.pdf') },
-  { title: 'Sunum', href: getR2Url('files/30-haya-ve-iffet/sunum.pdf') },
-  { title: 'Kahoot! Soruları', href: getR2Url('files/30-haya-ve-iffet/kahoot.pdf') }
-]
-const sukurVeKanaatFiles = [
-  { title: 'Ana Çalışma Metni', href: getR2Url('files/31-sukur-kanaat/ana-calisma-metni.pdf') },
-  { title: 'Handout', href: getR2Url('files/31-sukur-kanaat/handout.pdf') },
-  { title: 'Sunum', href: getR2Url('files/31-sukur-kanaat/sunum.pdf') },
-  { title: 'Kahoot! Soruları', href: getR2Url('files/31-sukur-kanaat/kahoot.pdf') }
-]
-const ihlasRisalesiFiles = [
-  { title: 'Ana Çalışma Metni', href: getR2Url('files/32-ihlas-risalesi/ana-calisma-metni.pdf') },
-  { title: 'Handout', href: getR2Url('files/32-ihlas-risalesi/handout.pdf') },
-  { title: 'Kahoot! Soruları', href: getR2Url('files/32-ihlas-risalesi/kahoot.pdf') },
-  { title: 'Sunum 1', href: getR2Url('files/32-ihlas-risalesi/sunum-1.pdf') },
-  { title: 'Sunum 2 – 21. Lem’a: İhlas Risalesi', href: getR2Url('files/32-ihlas-risalesi/sunum-2.pdf') },
-  { title: '21. Lem’a – İhlas Risalesi', href: getR2Url('files/32-ihlas-risalesi/21-lema-ihlas-risalesi.pdf') }
-]
-const cemaatOlmakFiles = [
-  { title: 'Ana Çalışma Metni', href: getR2Url('files/34-cemaat-olmak/ana-calisma-metni.pdf') },
-  { title: 'Handout', href: getR2Url('files/34-cemaat-olmak/handout.pdf') },
-  { title: 'Sunum', href: getR2Url('files/34-cemaat-olmak/sunum.pdf') },
-  { title: 'Kahoot! Soruları', href: getR2Url('files/34-cemaat-olmak/kahoot.pdf') }
-]
-const iradeFiles = [
-  { title: 'Ana Çalışma Metni', href: getR2Url('files/37-irade/ana-calisma-metni.pdf') },
-  { title: 'Özet', href: getR2Url('files/37-irade/ozet.pdf') },
-  { title: 'Sunum', href: getR2Url('files/37-irade/sunum.pdf') },
-  { title: 'Kahoot! Soruları', href: getR2Url('files/37-irade/kahoot.pdf') }
-]
-const tefekkurKulluktaDerinlesmeFiles = [
-  { title: 'Ana Çalışma Metni', href: getR2Url('files/45-tefekkur-kullukta-derinlesme/ana-calisma-metni.pdf') },
-  { title: 'Handout', href: getR2Url('files/45-tefekkur-kullukta-derinlesme/handout.pdf') },
-  { title: 'Sorular', href: getR2Url('files/45-tefekkur-kullukta-derinlesme/sorular.pdf') },
-  { title: 'Sunum', href: getR2Url('files/45-tefekkur-kullukta-derinlesme/sunum.pdf') }
-]
-
-const specialDayTopics = [
-  { no: '01', title: 'Kandiller', files: [] },
-  { no: '02', title: 'Ramazan', files: [] },
-  { no: '03', title: 'Kurban', files: [] },
-  { no: '04', title: 'Weihnachten', files: [] },
-  { no: '05', title: 'Ostern', files: [] },
-  { no: '06', title: 'Pfingsten', files: [] }
-]
-
-const curriculumTopics: Record<string, any[]> = {
-  A: [
-    { no: '01', title: 'Sohbet-i Cânân', files: sohbetiCananFiles },
-    { no: '21', title: 'Dua, Evrâdü’l-Ezkâr, Tesbîhat', files: duaEvradTesbihatFiles },
-    { no: '22', title: 'Cevşen, Ashâb-ı Bedir, Tevhidnâme', files: cevsenAshabiBedirTevhidnameFiles },
-    { no: '25', title: 'Mesuliyet Şuuru', files: mesuliyetSuuruFiles },
-    { no: '29', title: 'Hücûmât-ı Sitte', files: hucumatiSitteFiles },
-    { no: '30', title: 'Haya ve İffet', files: hayaVeIffetFiles },
-    { no: '31', title: 'Şükür ve Kanaatin Hayattaki Rolü', files: sukurVeKanaatFiles },
-    { no: '32', title: 'İhlas Kavramı ve İhlas Risalesi', files: ihlasRisalesiFiles },
-    { no: '34', title: 'Cemaat Olmak', files: cemaatOlmakFiles },
-    { no: '37', title: 'İrade', files: iradeFiles },
-    { no: '38', title: 'Sadakat ve İtaat', files: sadakatVeItaatFiles },
-    { no: '39', title: 'Fütüvvet ve Gençliğin Hakkını Verme', files: futuvvetFiles },
-    { no: '42', title: 'Cömertlik', files: comertlikFiles },
-    { no: '45', title: 'Tefekkür ve Kullukta Derinleşme', files: tefekkurKulluktaDerinlesmeFiles }
-  ],
-  B: [
-    { no: '03', title: 'Allah’a İman', files: allahaImanFiles },
-    { no: '05', title: 'Tevhid Delillerinden Bazı Örnekler', files: tevhidDelilleriFiles },
-    { no: '06', title: 'Peygamberlere İman', files: peygamberlereImanFiles },
-    { no: '11', title: 'Tevrat ve İncil’de Peygamberimizin Nübüvvetine Deliller', files: nubuvveteDelillerFiles },
-    { no: '13', title: 'Efendimiz’in (SAV) Şemaili, Ahlakı ve Adabı', files: semailAhlakAdabFiles },
-    { no: '15', title: 'Sahabe Efendilerimizin Faziletleri', files: sahabeFaziletleriFiles },
-    { no: '16', title: 'Sahabelerin Allah ve Resûlullah Sevgisi', files: sahabelerinAllahResulullahSevgisiFiles },
-    { no: '19', title: 'Namaz', files: namazFiles },
-    { no: '20', title: 'İş Yoğunluğu Arasında Namaz ve Şeytanın Namaz Hırsızlığı', files: isYogunluguNamazHirsizligiFiles }
-  ],
-  C: [
-    { no: '01', title: 'C Kategorisi Programı', files: [] }
-  ],
-  'ÖZEL GÜNLER': specialDayTopics
-}
-
-const currentTopics = computed(() => {
-  return openStep.value ? (curriculumTopics[openStep.value] || []) : []
-})
-
-// City Guides Data
-const hamburgFood = [
-  'Merdane (Helal)',
-  'Grand Café Back-Lava (Helal)',
-  'Tibarg Kebap Haus (Helal)',
-  'Anime Burger (Helal)',
-  'Leontes Eis und Kaffee (Dondurma, pizza, helal)'
-]
-
-const hamburgStops = [
-  { name: 'Alster · Jungfernstieg · Binnenalster', note: 'Tretboot turu', href: 'https://maps.app.goo.gl/5yV8wPWgrSEcvUt37' },
-  { name: 'Hamburg Rathaus', href: 'https://maps.app.goo.gl/JQYG7cmCkuB2oiadA' },
-  { name: 'Landungsbrücken', note: 'Feribot ve liman manzarası', href: 'https://maps.app.goo.gl/5z7sZLsDF55iK7fd9' },
-  { name: 'Alter Elbtunnel', href: 'https://maps.app.goo.gl/NTyj7GpBKN156fbH8' },
-  { name: 'Speicherstadt', href: 'https://maps.app.goo.gl/AYZsUQ9ytF3Se5Xe8' },
-  { name: 'Elbphilharmonie Plaza', note: 'Ücretsiz seyir platformu', href: 'https://maps.app.goo.gl/rLiGvM6vGLiRSJw69' },
-  { name: 'Miniatur Wunderland', note: 'Müze', href: 'https://maps.app.goo.gl/zhbcUB2BWNKcZbBQ8' },
-  { name: 'St. Michaelis – Der Michel', note: 'Seyir platformu', href: 'https://maps.app.goo.gl/koAttSPsF3Sgpy6b7' },
-  { name: 'Planten un Blomen', note: 'Mayıs–Eylül, saat 21.00’den sonra su ve ışık konseri', href: 'https://maps.app.goo.gl/tYvzXu6oreWVsSYQ9' },
-  { name: 'Fischmarkt', note: 'Pazar günleri saat 05.00’ten itibaren', href: 'https://maps.app.goo.gl/DA4qstSF5eUHav6G9' },
-  { name: 'Mahnmal St. Nikolai', note: 'Seyir platformu', href: 'https://maps.app.goo.gl/uSgE1CykajzaqeUB9' },
-  { name: 'Hamburger Kunsthalle', href: 'https://maps.app.goo.gl/H1X1YdWRYX6a89YTA' },
-  { name: 'Westfield Hamburg-Überseequartier', note: 'Alışveriş', href: 'https://maps.app.goo.gl/hiphb8Pm85H4Eow4A' }
-]
-
-const hamburgMosques = [
-  { name: 'Islamische Gemeinde Hamburg – Centrum Moschee', href: 'https://maps.app.goo.gl/GvsUiZLmGjGctb6y6' },
-  { name: 'Moscheegemeinde Altona Ulu Cami', href: 'https://maps.app.goo.gl/TKn8i29GXfzcRdkK7' },
-  { name: 'DİTİB Türkisch Islamische Gemeinde', href: 'https://maps.app.goo.gl/5EhTy6AXQKRLLEbu7' }
-]
-
-const hamburgInstitutions = [
-  'Forum Dialog',
-  'Akademikerbund',
-  'Die Kraft der Toleranz',
-  'Ehil e.V.',
-  'Alsterring Gymnasium'
-]
-
-const frankfurtFood = [
-  'Emir ET Restaurant',
-  'Anne Cafe & Restaurant & Catering',
-  'BigChefs Frankfurt',
-  "Josef's Biofleisch",
-  'Nirwana Grill',
-  'Restaurant Thai Fun Halal',
-  'Sos Döner Frankfurt',
-  'Anteplioğlu Frankfurt'
-]
-
-const frankfurtStops = [
-  { name: 'Main Nehri gezisi', note: 'Nehir kıyısı ve tekne gezisi', query: 'Main river cruise Frankfurt' },
-  { name: 'Müzeler Gecesi', note: 'Cumartesi, 25 Nisan 2026', query: 'Nacht der Museen Frankfurt' },
-  { name: 'Dippemess', note: '27 Mart–19 Nisan ve 11–27 Eylül 2026', query: 'Dippemess Frankfurt' },
-  { name: 'Mehmet Ali Şengül Kabri', note: 'Hanau', query: 'Mehmet Ali Şengül Grab Hanau' }
-]
-
-const frankfurtInstitutions = [
-  'Avicenna Institut e.V.',
-  'RUMI Kulturzentrum Frankfurt e.V.',
-  'Forum für Interkulturellen Dialog e.V. (FID e.V.)',
-  'Avicenna Institut e.V. (Höchst)'
-]
-
-const frankfurtPrayer = [
-  'DİTİB Merkez Camii Frankfurt',
-  'Bahnhofsmission, Caritasverband Frankfurt e.V.'
-]
 </script>
