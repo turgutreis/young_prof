@@ -108,12 +108,15 @@
                     :class="['topicFolder', { topicOpen: openTopic === topic.no }]"
                   >
                     <button
-                      class="topicHead"
+                      class="folderHead"
                       :aria-expanded="openTopic === topic.no"
                       @click="toggleTopic(topic.no)"
                     >
-                      <span class="topicNo">{{ topic.no }}</span>
-                      <b>{{ topic.title }}</b>
+                      <b>{{ topic.no }}</b>
+                      <div>
+                        <span>KONU DOSYASI</span>
+                        <h5>{{ topic.title }}</h5>
+                      </div>
                       <i>{{ openTopic === topic.no ? '−' : '+' }}</i>
                     </button>
 
