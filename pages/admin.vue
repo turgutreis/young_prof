@@ -72,6 +72,15 @@
         {{ feedbackMsg }}
       </div>
 
+      <!-- Uploading Banner / Modal -->
+      <div v-if="isUploadingBatch" class="batchUploadBanner">
+        <div class="batchSpinner"></div>
+        <div>
+          <b>Dosyalar Cloudflare R2'ye yükleniyor... ({{ batchProgress.current }} / {{ batchProgress.total }})</b>
+          <p>{{ batchProgress.currentFileName }}</p>
+        </div>
+      </div>
+
       <div class="adminBody">
         <!-- Sidebar Navigation Tabs -->
         <aside class="adminSidebar">
@@ -88,36 +97,90 @@
 
         <!-- Main Content Editor Area -->
         <main class="adminContent">
-          <!-- TAB 1: MÜFREDAT -->
+          <!-- TAB 1: MÜFREDAT (ZERO-URL DRAG & DROP UX) -->
           <section v-if="activeTab === 'curriculum'" class="editorSection">
             <div class="sectionHeader">
               <div>
                 <h2>🎓 Müfredat ve Ders Dosyaları</h2>
-                <p>Basamaklara göre konuları, PDF çalışma metinlerini ve sunumları yönetin.</p>
+                <p>Klasör veya PDF dosyalarınızı sürükleyip bırakın; sistem otomatik olarak R2'ye yükleyip konuyu oluşturur.</p>
               </div>
-              <div class="stepSelector">
+              <div class="headerActions">
                 <button
-                  v-for="step in curriculumSteps"
-                  :key="step"
-                  :class="['stepSelectBtn', { active: selectedStep === step }]"
-                  @click="selectedStep = step"
+                  class="syncBtn"
+                  :disabled="isSyncing"
+                  @click="syncFromR2Bucket"
+                  title="Cloudflare R2'deki tüm mevcut klasörleri ve PDF'leri tara"
                 >
-                  {{ step }}
+                  <span v-if="isSyncing">R2 Taranıyor...</span>
+                  <span v-else>🔄 R2'yi Tara & Eşitle</span>
                 </button>
+                <div class="stepSelector">
+                  <button
+                    v-for="step in curriculumSteps"
+                    :key="step"
+                    :class="['stepSelectBtn', { active: selectedStep === step }]"
+                    @click="selectedStep = step"
+                  >
+                    {{ step }}
+                  </button>
+                </div>
               </div>
             </div>
 
-            <!-- Topic Actions -->
+            <!-- MAGIC 1-CLICK FOLDER / FILES DROP ZONE -->
+            <div
+              class="magicDropZone"
+              :class="{ isDraggingOver: isDraggingOverMain }"
+              @dragover.prevent="isDraggingOverMain = true"
+              @dragleave.prevent="isDraggingOverMain = false"
+              @drop.prevent="handleMainDrop"
+            >
+              <div class="dropZoneIcon">📁</div>
+              <div class="dropZoneText">
+                <h3>Bir Ders Klasörünü veya PDF'leri Buraya Bırakın</h3>
+                <p>
+                  Örn: <b>"23 - Kur'an Okuma ve İrtibatımız"</b> klasörünü sürükleyin.
+                  İçindeki tüm PDF'ler otomatik tanınır (Ana Metin, Handout, Sunum, Kahoot) ve R2'ye yüklenir.
+                </p>
+              </div>
+              <div class="dropZoneButtons">
+                <!-- Folder Picker -->
+                <label class="pickerBtn primaryPicker">
+                  📂 Klasör Yükle
+                  <input
+                    type="file"
+                    webkitdirectory
+                    directory
+                    multiple
+                    @change="handleFolderSelect"
+                    style="display: none;"
+                  />
+                </label>
+                <!-- Multi-File Picker -->
+                <label class="pickerBtn">
+                  📄 PDF Dosyaları Seç
+                  <input
+                    type="file"
+                    multiple
+                    accept=".pdf,.png,.jpg,.jpeg,.webp"
+                    @change="handleFilesSelect"
+                    style="display: none;"
+                  />
+                </label>
+              </div>
+            </div>
+
+            <!-- Topic Actions Toolbar -->
             <div class="topicToolbar">
-              <button class="addBtn" @click="openAddTopicModal">
-                ＋ Yeni Konu Ekle ({{ selectedStep }} Basamağı)
+              <button class="addBtn" @click="openNewEmptyTopic">
+                ＋ Boş Konu Ekle ({{ selectedStep }} Basamağı)
               </button>
               <span class="countBadge">
-                Toplam {{ currentStepTopics.length }} Konu
+                Toplam {{ currentStepTopics.length }} Konu Listeleniyor
               </span>
             </div>
 
-            <!-- Topics List -->
+            <!-- Topics List with Clean Visual Badges -->
             <div class="topicsList">
               <div
                 v-for="(topic, topicIdx) in currentStepTopics"
@@ -126,7 +189,13 @@
               >
                 <div class="topicItemHeader">
                   <div class="topicTitleRow">
-                    <span class="topicItemNo">No: {{ topic.no }}</span>
+                    <input
+                      v-model="topic.no"
+                      type="text"
+                      class="topicNoInput"
+                      placeholder="No"
+                      title="Konu Numarası"
+                    />
                     <input
                       v-model="topic.title"
                       type="text"
@@ -135,64 +204,66 @@
                     />
                   </div>
                   <div class="topicItemActions">
-                    <button
-                      class="fileAddBtn"
-                      @click="openFileUploadForTopic(topic)"
-                      title="Bu konuya PDF veya dosya yükle"
-                    >
-                      ☁ R2 Dosya Yükle
-                    </button>
+                    <!-- Quick File Drop or Add for this Topic -->
+                    <label class="miniUploadBtn" :title="`${topic.title} konusuna PDF ekle`">
+                      ＋ PDF Yükle
+                      <input
+                        type="file"
+                        multiple
+                        accept=".pdf"
+                        @change="(e) => handleTopicSpecificUpload(e, topic)"
+                        style="display: none;"
+                      />
+                    </label>
                     <button
                       class="deleteBtn"
                       @click="deleteTopic(topicIdx)"
-                      title="Konuyu Sil"
+                      title="Bu Konuyu Sil"
                     >
                       🗑
                     </button>
                   </div>
                 </div>
 
-                <!-- Topic Files Accordion / List -->
-                <div class="topicFiles">
-                  <div
-                    v-for="(file, fileIdx) in topic.files"
-                    :key="fileIdx"
-                    class="topicFileRow"
-                  >
-                    <span class="pdfTag">PDF</span>
-                    <input
-                      v-model="file.title"
-                      type="text"
-                      class="fileTitleInput"
-                      placeholder="Dosya Başlığı (Örn. Ana Çalışma Metni)"
-                    />
-                    <input
-                      v-model="file.href"
-                      type="text"
-                      class="fileHrefInput"
-                      placeholder="R2 Akış URL'si veya Dosya Yolu"
-                    />
-                    <a
-                      :href="file.href"
-                      target="_blank"
-                      class="previewFileLink"
-                      title="Önizle"
+                <!-- Topic Visual Files List (Zero URLs!) -->
+                <div class="topicFilesContainer">
+                  <div v-if="topic.files && topic.files.length" class="visualFilesGrid">
+                    <div
+                      v-for="(file, fileIdx) in topic.files"
+                      :key="fileIdx"
+                      class="fileChipCard"
                     >
-                      ↗
-                    </a>
-                    <button
-                      class="removeFileBtn"
-                      @click="removeFileFromTopic(topic, fileIdx)"
-                      title="Dosyayı Kaldır"
-                    >
-                      ✕
-                    </button>
+                      <span :class="['fileTypeBadge', getBadgeClass(file.title)]">
+                        {{ getBadgeText(file.title) }}
+                      </span>
+                      <input
+                        v-model="file.title"
+                        type="text"
+                        class="fileChipTitleInput"
+                        placeholder="Dosya Adı"
+                      />
+                      <div class="fileChipActions">
+                        <a
+                          :href="file.href"
+                          target="_blank"
+                          class="chipActionBtn preview"
+                          title="Önizle / İndir"
+                        >
+                          👁
+                        </a>
+                        <button
+                          class="chipActionBtn delete"
+                          @click="removeFileFromTopic(topic, fileIdx)"
+                          title="Dosyayı Kaldır"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </div>
                   </div>
 
-                  <div class="addFileToolbar">
-                    <button class="subtleAddBtn" @click="addManualFileToTopic(topic)">
-                      ＋ Manuel Dosya Satırı Ekle
-                    </button>
+                  <div v-else class="emptyFilesPlaceholder">
+                    <span>Henüz dosya eklenmedi. Yukarıdaki „＋ PDF Yükle“ butonuna tıklayın veya dosyaları buraya sürükleyin.</span>
                   </div>
                 </div>
               </div>
@@ -287,9 +358,15 @@
               >
                 <div class="bookCoverPreview">
                   <img :src="book.cover" :alt="book.title" />
-                  <button class="uploadCoverBtn" @click="triggerBookCoverUpload(bIdx)">
-                    📷 Kapağı Değiştir
-                  </button>
+                  <label class="uploadCoverLabel">
+                    📷 Kapak Resmi Seç
+                    <input
+                      type="file"
+                      accept="image/*"
+                      @change="(e) => handleBookCoverUpload(e, bIdx)"
+                      style="display: none;"
+                    />
+                  </label>
                 </div>
                 <div class="bookFields">
                   <div class="formGroup">
@@ -303,10 +380,6 @@
                   <div class="formGroup">
                     <label>Satın Alma / Detay Linki</label>
                     <input v-model="book.href" type="text" />
-                  </div>
-                  <div class="formGroup">
-                    <label>Kapak R2 URL'si</label>
-                    <input v-model="book.cover" type="text" />
                   </div>
                   <button class="deleteBtn" @click="content.readingPlanBooks.splice(bIdx, 1)">
                     🗑 Kitabı Kaldır
@@ -347,8 +420,23 @@
                   <h4>Özel Afiş / Kayıt Bilgisi ({{ plat }})</h4>
                   <div class="formGrid">
                     <div class="formGroup">
-                      <label>Afiş Görseli URL'si</label>
-                      <input v-model="content.activityPlatformDetails[plat].bannerImage" type="text" />
+                      <label>Afiş Görseli</label>
+                      <div class="bannerUploadRow">
+                        <img
+                          v-if="content.activityPlatformDetails[plat].bannerImage"
+                          :src="content.activityPlatformDetails[plat].bannerImage"
+                          class="miniBannerPreview"
+                        />
+                        <label class="miniUploadBtn">
+                          📷 Afiş Seç & Yükle
+                          <input
+                            type="file"
+                            accept="image/*"
+                            @change="(e) => handlePlatformBannerUpload(e, plat)"
+                            style="display: none;"
+                          />
+                        </label>
+                      </div>
                     </div>
                     <div class="formGroup">
                       <label>Kayıt Linki</label>
@@ -401,51 +489,13 @@
           </section>
         </main>
       </div>
-
-      <!-- File Upload Modal -->
-      <div v-if="uploadModalOpen" class="modalOverlay" @click.self="uploadModalOpen = false">
-        <div class="uploadModal">
-          <div class="modalHeader">
-            <h3>Cloudflare R2'ye Dosya Yükle</h3>
-            <button class="closeModalBtn" @click="uploadModalOpen = false">✕</button>
-          </div>
-
-          <div class="modalBody">
-            <div class="formGroup">
-              <label>Hedef Klasör (Cloudflare R2)</label>
-              <input v-model="uploadFolder" type="text" placeholder="files/01-sohbet-i-canan" />
-            </div>
-
-            <div class="formGroup">
-              <label>Özel Dosya Adı (İsteğe bağlı)</label>
-              <input v-model="uploadCustomName" type="text" placeholder="ana-calisma-metni.pdf" />
-            </div>
-
-            <div class="dropZone">
-              <input type="file" ref="fileInputRef" @change="onFileSelected" />
-              <p v-if="!selectedUploadFile">Dosyayı seçin veya buraya bırakın (PDF, PNG, JPG)</p>
-              <p v-else>Seçilen dosya: <b>{{ selectedUploadFile.name }}</b> ({{ (selectedUploadFile.size / 1024).toFixed(1) }} KB)</p>
-            </div>
-
-            <div v-if="uploadError" class="errorAlert">{{ uploadError }}</div>
-          </div>
-
-          <div class="modalFooter">
-            <button class="outlineNavBtn" @click="uploadModalOpen = false">İptal</button>
-            <button class="saveBtn" :disabled="!selectedUploadFile || isUploading" @click="submitFileUpload">
-              <span v-if="isUploading">Yükleniyor...</span>
-              <span v-else>R2'ye Yükle ☁</span>
-            </button>
-          </div>
-        </div>
-      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import type { SiteContent, CurriculumTopic, BookItem } from '~/types'
+import type { SiteContent, CurriculumTopic, CurriculumFile } from '~/types'
 import { getInitialSiteContent } from '~/data/initial-content'
 import { curriculumSteps } from '~/data/curriculum'
 
@@ -471,22 +521,21 @@ const isLoggingIn = ref(false)
 const loginError = ref('')
 
 const isSaving = ref(false)
+const isSyncing = ref(false)
 const feedbackMsg = ref('')
 const feedbackType = ref<'success' | 'error'>('success')
 
 // Content State
 const content = ref<SiteContent>(getInitialSiteContent())
 
-// Upload State
-const uploadModalOpen = ref(false)
-const uploadFolder = ref('files/uploads')
-const uploadCustomName = ref('')
-const selectedUploadFile = ref<File | null>(null)
-const isUploading = ref(false)
-const uploadError = ref('')
-const targetTopicForUpload = ref<CurriculumTopic | null>(null)
-const targetBookIdxForUpload = ref<number | null>(null)
-const fileInputRef = ref<HTMLInputElement | null>(null)
+// Drag & Drop State
+const isDraggingOverMain = ref(false)
+const isUploadingBatch = ref(false)
+const batchProgress = ref({
+  current: 0,
+  total: 0,
+  currentFileName: ''
+})
 
 const currentStepTopics = computed<CurriculumTopic[]>({
   get() {
@@ -499,7 +548,6 @@ const currentStepTopics = computed<CurriculumTopic[]>({
 
 // Lifecycle
 onMounted(async () => {
-  // Check if session exists in cookie or localStorage
   const storedPass = localStorage.getItem('yp_admin_pass')
   if (storedPass) {
     passwordInput.value = storedPass
@@ -562,7 +610,7 @@ async function saveChanges() {
     })
 
     feedbackType.value = 'success'
-    feedbackMsg.value = res.message || 'Başarıyla kaydedildi!'
+    feedbackMsg.value = res.message || 'Başarıyla Cloudflare R2 üzerine kaydedildi!'
     content.value.lastUpdated = new Date().toISOString()
     setTimeout(() => { feedbackMsg.value = '' }, 4000)
   } catch (err: any) {
@@ -579,8 +627,270 @@ function formatTime(isoString?: string) {
   return d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }) + ' (' + d.toLocaleDateString('tr-TR') + ')'
 }
 
-// Topic actions
-function openAddTopicModal() {
+// ==========================================
+// 🚀 SMART ZERO-URL DRAG & DROP FOLDER PARSER
+// ==========================================
+
+async function handleMainDrop(e: DragEvent) {
+  isDraggingOverMain.value = false
+  const items = e.dataTransfer?.items
+  if (!items || items.length === 0) return
+
+  const entries: any[] = []
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i]
+    if (item.webkitGetAsEntry) {
+      const entry = item.webkitGetAsEntry()
+      if (entry) entries.push(entry)
+    }
+  }
+
+  if (entries.length > 0) {
+    for (const entry of entries) {
+      if (entry.isDirectory) {
+        await processDirectoryEntry(entry)
+      } else if (entry.isFile) {
+        const file = await getFileFromEntry(entry)
+        if (file) await uploadSingleOrGroupFiles([file], 'Genel Dosyalar')
+      }
+    }
+  }
+}
+
+async function processDirectoryEntry(dirEntry: any) {
+  const folderName = dirEntry.name // e.g. "23 - Kur'an Okuma ve İrtibatımız"
+  const { no, title, slug } = parseFolderName(folderName)
+
+  const files: File[] = await readAllFilesFromDir(dirEntry)
+  if (files.length === 0) return
+
+  await uploadFilesToTopic(files, no, title, slug)
+}
+
+function readAllFilesFromDir(dirEntry: any): Promise<File[]> {
+  return new Promise((resolve) => {
+    const reader = dirEntry.createReader()
+    const allFiles: File[] = []
+
+    function readEntries() {
+      reader.readEntries(async (entries: any[]) => {
+        if (entries.length === 0) {
+          resolve(allFiles)
+        } else {
+          for (const entry of entries) {
+            if (entry.isFile) {
+              const file = await getFileFromEntry(entry)
+              if (file && (file.name.endsWith('.pdf') || file.name.endsWith('.png') || file.name.endsWith('.jpg'))) {
+                allFiles.push(file)
+              }
+            }
+          }
+          readEntries()
+        }
+      })
+    }
+    readEntries()
+  })
+}
+
+function getFileFromEntry(fileEntry: any): Promise<File | null> {
+  return new Promise((resolve) => {
+    fileEntry.file((file: File) => resolve(file), () => resolve(null))
+  })
+}
+
+function parseFolderName(rawName: string): { no: string; title: string; slug: string } {
+  const match = rawName.match(/^(\d+)[-_ ]*(.*)$/)
+  if (match) {
+    const no = match[1].padStart(2, '0')
+    const rawTitle = match[2].trim() || `Konu ${no}`
+    const slug = `${no}-${rawTitle.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-')}`
+    return { no, title: rawTitle, slug }
+  }
+
+  const slug = rawName.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-')
+  return { no: '✦', title: rawName, slug }
+}
+
+async function handleFolderSelect(e: Event) {
+  const target = e.target as HTMLInputElement
+  if (!target.files || target.files.length === 0) return
+
+  const files = Array.from(target.files)
+  // Determine root folder name from relative path (e.g. "23-kuran-okuma/handout.pdf")
+  const firstPath = (files[0] as any).webkitRelativePath || files[0].name
+  const folderName = firstPath.includes('/') ? firstPath.split('/')[0] : 'Yeni Konu'
+  const { no, title, slug } = parseFolderName(folderName)
+
+  await uploadFilesToTopic(files, no, title, slug)
+  target.value = ''
+}
+
+async function handleFilesSelect(e: Event) {
+  const target = e.target as HTMLInputElement
+  if (!target.files || target.files.length === 0) return
+
+  const files = Array.from(target.files)
+  await uploadSingleOrGroupFiles(files, 'Seçilen Dosyalar')
+  target.value = ''
+}
+
+async function uploadSingleOrGroupFiles(files: File[], defaultTitle: string) {
+  const nextNo = String(currentStepTopics.value.length + 1).padStart(2, '0')
+  const slug = `${nextNo}-${defaultTitle.toLowerCase().replace(/[^a-z0-9]/g, '-')}`
+  await uploadFilesToTopic(files, nextNo, defaultTitle, slug)
+}
+
+async function uploadFilesToTopic(files: File[], no: string, title: string, slug: string) {
+  isUploadingBatch.value = true
+  batchProgress.value = { current: 0, total: files.length, currentFileName: '' }
+
+  // Check if topic already exists in currentStepTopics
+  let existingTopic = currentStepTopics.value.find(t => t.no === no)
+  if (!existingTopic) {
+    existingTopic = {
+      no,
+      title,
+      files: []
+    }
+    currentStepTopics.value.push(existingTopic)
+  }
+
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i]
+    batchProgress.value.current = i + 1
+    batchProgress.value.currentFileName = file.name
+
+    const targetFolder = `files/${slug}`
+    const fileTitle = formatSmartFileTitle(file.name)
+
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('folder', targetFolder)
+
+    try {
+      const res = await $fetch<{ success: boolean; key: string; href: string }>('/api/admin/upload', {
+        method: 'POST',
+        headers: { 'x-admin-password': passwordInput.value.trim() },
+        body: formData
+      })
+
+      if (res.success) {
+        // Avoid duplicate file entries
+        const exists = existingTopic.files.some(f => f.title === fileTitle)
+        if (!exists) {
+          existingTopic.files.push({
+            title: fileTitle,
+            href: res.href
+          })
+        }
+      }
+    } catch (err: any) {
+      console.error('Failed to upload file:', file.name, err)
+    }
+  }
+
+  isUploadingBatch.value = false
+  feedbackType.value = 'success'
+  feedbackMsg.value = `"${title}" konusu ve ${files.length} dosya başarıyla R2'ye yüklendi!`
+  setTimeout(() => { feedbackMsg.value = '' }, 4000)
+}
+
+function formatSmartFileTitle(fileName: string): string {
+  const lower = fileName.toLowerCase()
+  if (lower.includes('ana-calisma') || lower.includes('ana_calisma') || lower.includes('ana calisma')) {
+    return 'Ana Çalışma Metni'
+  }
+  if (lower.includes('handout-1')) return 'Handout 1'
+  if (lower.includes('handout-2')) return 'Handout 2'
+  if (lower.includes('handout')) return 'Handout'
+  if (lower.includes('sunum-1')) return 'Sunum 1'
+  if (lower.includes('sunum-2')) return 'Sunum 2'
+  if (lower.includes('sunum')) return 'Sunum'
+  if (lower.includes('kahoot')) return 'Kahoot! Soruları'
+  if (lower.includes('ozet')) return 'Özet'
+  if (lower.includes('sorularla-anlatim')) return 'Sorularla Anlatım'
+  if (lower.includes('sorular')) return 'Sorular'
+  if (lower.includes('videolar')) return 'Videolar'
+  if (lower.includes('21-lema')) return '21. Lem’a – İhlas Risalesi'
+
+  const base = fileName.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ')
+  return base.charAt(0).toUpperCase() + base.slice(1)
+}
+
+function getBadgeText(title: string): string {
+  if (title.includes('Ana')) return '📄 ANA METİN'
+  if (title.includes('Handout')) return '📑 HANDOUT'
+  if (title.includes('Sunum')) return '📊 SUNUM'
+  if (title.includes('Kahoot')) return '❓ KAHOOT'
+  if (title.includes('Özet')) return '📝 ÖZET'
+  return '📎 PDF'
+}
+
+function getBadgeClass(title: string): string {
+  if (title.includes('Ana')) return 'badgeAna'
+  if (title.includes('Handout')) return 'badgeHandout'
+  if (title.includes('Sunum')) return 'badgeSunum'
+  if (title.includes('Kahoot')) return 'badgeKahoot'
+  return 'badgeDefault'
+}
+
+// Topic-specific file upload
+async function handleTopicSpecificUpload(e: Event, topic: CurriculumTopic) {
+  const target = e.target as HTMLInputElement
+  if (!target.files || target.files.length === 0) return
+
+  const files = Array.from(target.files)
+  const slug = `${topic.no}-${topic.title.toLowerCase().replace(/[^a-z0-9]/g, '-')}`
+
+  isUploadingBatch.value = true
+  batchProgress.value = { current: 0, total: files.length, currentFileName: '' }
+
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i]
+    batchProgress.value.current = i + 1
+    batchProgress.value.currentFileName = file.name
+
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('folder', `files/${slug}`)
+
+    try {
+      const res = await $fetch<{ success: boolean; key: string; href: string }>('/api/admin/upload', {
+        method: 'POST',
+        headers: { 'x-admin-password': passwordInput.value.trim() },
+        body: formData
+      })
+
+      if (res.success) {
+        topic.files.push({
+          title: formatSmartFileTitle(file.name),
+          href: res.href
+        })
+      }
+    } catch (err: any) {
+      console.error('Upload failed:', err)
+    }
+  }
+
+  isUploadingBatch.value = false
+  target.value = ''
+  feedbackType.value = 'success'
+  feedbackMsg.value = 'Dosyalar başarıyla eklendi!'
+  setTimeout(() => { feedbackMsg.value = '' }, 4000)
+}
+
+function removeFileFromTopic(topic: CurriculumTopic, fileIdx: number) {
+  topic.files.splice(fileIdx, 1)
+}
+
+function deleteTopic(index: number) {
+  if (confirm('Bu konuyu ve bağlı dosyalarını silmek istediğinizden emin misiniz?')) {
+    currentStepTopics.value.splice(index, 1)
+  }
+}
+
+function openNewEmptyTopic() {
   const nextNo = String(currentStepTopics.value.length + 1).padStart(2, '0')
   currentStepTopics.value.push({
     no: nextNo,
@@ -589,91 +899,30 @@ function openAddTopicModal() {
   })
 }
 
-function deleteTopic(index: number) {
-  if (confirm('Bu konuyu silmek istediğinizden emin misiniz?')) {
-    currentStepTopics.value.splice(index, 1)
-  }
-}
-
-function addManualFileToTopic(topic: CurriculumTopic) {
-  topic.files.push({
-    title: 'Yeni Doküman',
-    href: ''
-  })
-}
-
-function removeFileFromTopic(topic: CurriculumTopic, fileIdx: number) {
-  topic.files.splice(fileIdx, 1)
-}
-
-function openFileUploadForTopic(topic: CurriculumTopic) {
-  targetTopicForUpload.value = topic
-  targetBookIdxForUpload.value = null
-  const slug = topic.title.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-')
-  uploadFolder.value = `files/${topic.no}-${slug}`
-  uploadCustomName.value = 'ana-calisma-metni.pdf'
-  selectedUploadFile.value = null
-  uploadError.value = ''
-  uploadModalOpen.value = true
-}
-
-function triggerBookCoverUpload(bIdx: number) {
-  targetBookIdxForUpload.value = bIdx
-  targetTopicForUpload.value = null
-  uploadFolder.value = 'books/2026-27'
-  uploadCustomName.value = ''
-  selectedUploadFile.value = null
-  uploadError.value = ''
-  uploadModalOpen.value = true
-}
-
-function onFileSelected(e: Event) {
-  const target = e.target as HTMLInputElement
-  if (target.files && target.files[0]) {
-    selectedUploadFile.value = target.files[0]
-  }
-}
-
-async function submitFileUpload() {
-  if (!selectedUploadFile.value) return
-  isUploading.value = true
-  uploadError.value = ''
-
-  const formData = new FormData()
-  formData.append('file', selectedUploadFile.value)
-  formData.append('folder', uploadFolder.value)
-  if (uploadCustomName.value.trim()) {
-    formData.append('customFilename', uploadCustomName.value.trim())
-  }
+// ==========================================
+// 🔄 R2 BUCKET SCANNER & SYNC
+// ==========================================
+async function syncFromR2Bucket() {
+  isSyncing.value = true
+  feedbackMsg.value = ''
 
   try {
-    const res = await $fetch<{ success: boolean; key: string; href: string; fileName: string }>('/api/admin/upload', {
+    const res = await $fetch<{ success: boolean; totalFiles: number; topicsCount: number; topics: CurriculumTopic[] }>('/api/admin/sync-r2', {
       method: 'POST',
-      headers: {
-        'x-admin-password': passwordInput.value.trim()
-      },
-      body: formData
+      headers: { 'x-admin-password': passwordInput.value.trim() }
     })
 
     if (res.success) {
-      if (targetTopicForUpload.value) {
-        targetTopicForUpload.value.files.push({
-          title: uploadCustomName.value || res.fileName,
-          href: res.href
-        })
-      } else if (targetBookIdxForUpload.value !== null) {
-        content.value.readingPlanBooks[targetBookIdxForUpload.value].cover = res.href
-      }
-
-      uploadModalOpen.value = false
+      // Merge discovered topics into current step or report
       feedbackType.value = 'success'
-      feedbackMsg.value = `Dosya R2'ye yüklendi: ${res.key}`
-      setTimeout(() => { feedbackMsg.value = '' }, 4000)
+      feedbackMsg.value = `Cloudflare R2 Tarandı: Toplam ${res.totalFiles} dosya ve ${res.topicsCount} konu bulundu!`
+      setTimeout(() => { feedbackMsg.value = '' }, 5000)
     }
   } catch (err: any) {
-    uploadError.value = err.data?.statusMessage || 'Yükleme başarısız oldu.'
+    feedbackType.value = 'error'
+    feedbackMsg.value = err.data?.statusMessage || 'R2 taraması başarısız oldu.'
   } finally {
-    isUploading.value = false
+    isSyncing.value = false
   }
 }
 
@@ -687,8 +936,64 @@ function addNewBook() {
   })
 }
 
+async function handleBookCoverUpload(e: Event, bIdx: number) {
+  const target = e.target as HTMLInputElement
+  if (!target.files || !target.files[0]) return
+
+  const file = target.files[0]
+  const formData = new FormData()
+  formData.append('file', file)
+  formData.append('folder', 'books/2026-27')
+
+  try {
+    const res = await $fetch<{ success: boolean; href: string }>('/api/admin/upload', {
+      method: 'POST',
+      headers: { 'x-admin-password': passwordInput.value.trim() },
+      body: formData
+    })
+    if (res.success) {
+      content.value.readingPlanBooks[bIdx].cover = res.href
+      feedbackType.value = 'success'
+      feedbackMsg.value = 'Kapak resmi güncellendi!'
+      setTimeout(() => { feedbackMsg.value = '' }, 3000)
+    }
+  } catch (err: any) {
+    alert('Kapak resmi yüklenemedi: ' + (err.data?.statusMessage || err.message))
+  }
+}
+
 function addNewPlatform() {
   content.value.activityPlatforms.push('Yeni Gençlik Platformu')
+}
+
+async function handlePlatformBannerUpload(e: Event, plat: string) {
+  const target = e.target as HTMLInputElement
+  if (!target.files || !target.files[0]) return
+
+  const file = target.files[0]
+  const formData = new FormData()
+  formData.append('file', file)
+  formData.append('folder', 'flyers')
+
+  try {
+    const res = await $fetch<{ success: boolean; href: string }>('/api/admin/upload', {
+      method: 'POST',
+      headers: { 'x-admin-password': passwordInput.value.trim() },
+      body: formData
+    })
+    if (res.success) {
+      if (!content.value.activityPlatformDetails[plat]) {
+        content.value.activityPlatformDetails[plat] = { name: plat, bannerImage: res.href }
+      } else {
+        content.value.activityPlatformDetails[plat].bannerImage = res.href
+      }
+      feedbackType.value = 'success'
+      feedbackMsg.value = 'Afiş görseli güncellendi!'
+      setTimeout(() => { feedbackMsg.value = '' }, 3000)
+    }
+  } catch (err: any) {
+    alert('Afiş yüklenemedi: ' + (err.data?.statusMessage || err.message))
+  }
 }
 </script>
 
@@ -925,6 +1230,35 @@ input:focus, textarea:focus, select:focus {
   color: #fff;
 }
 
+/* BATCH UPLOAD OVERLAY */
+.batchUploadBanner {
+  position: fixed;
+  top: 70px;
+  right: 2rem;
+  background: #2563eb;
+  color: #fff;
+  padding: 1rem 1.5rem;
+  border-radius: 10px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  z-index: 9999;
+}
+
+.batchSpinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 /* BODY & SIDEBAR */
 .adminBody {
   display: flex;
@@ -976,7 +1310,7 @@ input:focus, textarea:focus, select:focus {
 .sectionHeader {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   margin-bottom: 2rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   padding-bottom: 1.5rem;
@@ -991,6 +1325,29 @@ input:focus, textarea:focus, select:focus {
 .sectionHeader p {
   color: #777;
   font-size: 0.9rem;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.syncBtn {
+  background: #1e293b;
+  color: #38bdf8;
+  border: 1px solid #0284c7;
+  padding: 0.45rem 0.9rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.syncBtn:hover {
+  background: #0284c7;
+  color: #fff;
 }
 
 .stepSelector {
@@ -1015,6 +1372,74 @@ input:focus, textarea:focus, select:focus {
   border-color: #3b82f6;
 }
 
+/* 🚀 MAGIC DROP ZONE */
+.magicDropZone {
+  background: #16161c;
+  border: 2px dashed rgba(59, 130, 246, 0.4);
+  border-radius: 14px;
+  padding: 2.5rem 2rem;
+  text-align: center;
+  margin-bottom: 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  transition: all 0.2s;
+}
+
+.magicDropZone.isDraggingOver {
+  background: rgba(37, 99, 235, 0.15);
+  border-color: #3b82f6;
+  transform: scale(1.01);
+}
+
+.dropZoneIcon {
+  font-size: 2.8rem;
+}
+
+.dropZoneText h3 {
+  font-size: 1.25rem;
+  color: #fff;
+  margin-bottom: 0.4rem;
+}
+
+.dropZoneText p {
+  color: #888;
+  font-size: 0.9rem;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.dropZoneButtons {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.pickerBtn {
+  background: #202028;
+  color: #ddd;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pickerBtn.primaryPicker {
+  background: #2563eb;
+  color: #fff;
+  border-color: #2563eb;
+}
+
+.pickerBtn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
 .topicToolbar {
   display: flex;
   justify-content: space-between;
@@ -1023,9 +1448,9 @@ input:focus, textarea:focus, select:focus {
 }
 
 .addBtn {
-  background: #2563eb;
-  color: #fff;
-  border: none;
+  background: #1e293b;
+  color: #94a3b8;
+  border: 1px dashed rgba(255, 255, 255, 0.2);
   padding: 0.6rem 1.2rem;
   border-radius: 6px;
   font-weight: 600;
@@ -1033,11 +1458,17 @@ input:focus, textarea:focus, select:focus {
   font-size: 0.9rem;
 }
 
+.addBtn:hover {
+  background: #334155;
+  color: #fff;
+}
+
 .countBadge {
   font-size: 0.85rem;
   color: #888;
 }
 
+/* TOPICS & VISUAL FILE CHIPS */
 .topicsList {
   display: flex;
   flex-direction: column;
@@ -1047,8 +1478,8 @@ input:focus, textarea:focus, select:focus {
 .topicItemCard {
   background: #16161a;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
-  padding: 1.2rem;
+  border-radius: 12px;
+  padding: 1.2rem 1.5rem;
 }
 
 .topicItemHeader {
@@ -1065,32 +1496,36 @@ input:focus, textarea:focus, select:focus {
   flex: 1;
 }
 
-.topicItemNo {
+.topicNoInput {
+  width: 55px;
+  text-align: center;
   background: #26262e;
   color: #3b82f6;
-  font-weight: 700;
-  font-size: 0.85rem;
-  padding: 0.3rem 0.6rem;
+  font-weight: 800;
+  font-size: 0.95rem;
   border-radius: 6px;
 }
 
 .topicTitleInput {
   flex: 1;
   font-weight: 600;
+  font-size: 1.05rem;
 }
 
 .topicItemActions {
   display: flex;
-  gap: 0.5rem;
+  align-items: center;
+  gap: 0.6rem;
 }
 
-.fileAddBtn {
+.miniUploadBtn {
   background: #1e3a8a;
   color: #93c5fd;
   border: 1px solid #3b82f6;
-  padding: 0.4rem 0.8rem;
+  padding: 0.45rem 0.9rem;
   border-radius: 6px;
   font-size: 0.8rem;
+  font-weight: 600;
   cursor: pointer;
 }
 
@@ -1098,70 +1533,88 @@ input:focus, textarea:focus, select:focus {
   background: rgba(239, 68, 68, 0.15);
   color: #f87171;
   border: 1px solid rgba(239, 68, 68, 0.3);
-  padding: 0.4rem 0.6rem;
+  padding: 0.45rem 0.7rem;
   border-radius: 6px;
   cursor: pointer;
 }
 
-.topicFiles {
+.topicFilesContainer {
   background: #101013;
   border-radius: 8px;
-  padding: 0.8rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
+  padding: 1rem;
 }
 
-.topicFileRow {
+.visualFilesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 0.8rem;
+}
+
+.fileChipCard {
+  background: #1a1a20;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 0.6rem 0.8rem;
   display: flex;
   align-items: center;
   gap: 0.6rem;
 }
 
-.pdfTag {
-  background: #ef4444;
+.fileTypeBadge {
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.badgeAna { background: #2563eb; color: #fff; }
+.badgeHandout { background: #059669; color: #fff; }
+.badgeSunum { background: #d97706; color: #fff; }
+.badgeKahoot { background: #7c3aed; color: #fff; }
+.badgeDefault { background: #475569; color: #fff; }
+
+.fileChipTitleInput {
+  flex: 1;
+  background: transparent;
+  border: none;
+  padding: 0.2rem;
+  font-size: 0.85rem;
+  font-weight: 600;
   color: #fff;
-  font-size: 0.7rem;
-  font-weight: 700;
-  padding: 0.2rem 0.4rem;
+}
+
+.fileChipTitleInput:focus {
+  background: #24242c;
   border-radius: 4px;
 }
 
-.fileTitleInput {
-  width: 220px;
+.fileChipActions {
+  display: flex;
+  gap: 0.3rem;
 }
 
-.fileHrefInput {
-  flex: 1;
-}
-
-.previewFileLink {
-  color: #60a5fa;
-  text-decoration: none;
-  font-size: 1.1rem;
-}
-
-.removeFileBtn {
+.chipActionBtn {
   background: transparent;
-  color: #888;
   border: none;
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
   cursor: pointer;
+  font-size: 0.85rem;
 }
 
-.removeFileBtn:hover {
-  color: #ef4444;
+.chipActionBtn.preview { color: #60a5fa; text-decoration: none; }
+.chipActionBtn.delete { color: #888; }
+.chipActionBtn.delete:hover { color: #ef4444; }
+
+.emptyFilesPlaceholder {
+  color: #666;
+  font-size: 0.85rem;
+  text-align: center;
+  padding: 0.5rem;
 }
 
-.subtleAddBtn {
-  background: transparent;
-  border: 1px dashed rgba(255, 255, 255, 0.2);
-  color: #aaa;
-  padding: 0.4rem 0.8rem;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 0.8rem;
-}
-
+/* OTHER TABS (News, Books, etc.) */
 .cardBox {
   background: #16161a;
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -1219,14 +1672,15 @@ input:focus, textarea:focus, select:focus {
   border-radius: 6px;
 }
 
-.uploadCoverBtn {
+.uploadCoverLabel {
   background: #202026;
   color: #aaa;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 0.3rem;
+  padding: 0.4rem;
   font-size: 0.75rem;
   border-radius: 4px;
   cursor: pointer;
+  text-align: center;
 }
 
 .bookFields {
@@ -1259,6 +1713,18 @@ input:focus, textarea:focus, select:focus {
   flex: 1;
 }
 
+.bannerUploadRow {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.miniBannerPreview {
+  height: 50px;
+  width: auto;
+  border-radius: 4px;
+}
+
 .citiesEditor {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1280,64 +1746,13 @@ input:focus, textarea:focus, select:focus {
   gap: 0.5rem;
 }
 
-/* MODAL */
-.modalOverlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.75);
-  backdrop-filter: blur(4px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 10000;
-  padding: 1rem;
-}
-
-.uploadModal {
-  background: #18181c;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 14px;
-  width: 100%;
-  max-width: 500px;
-  padding: 1.5rem;
-}
-
-.modalHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.2rem;
-}
-
-.closeModalBtn {
+.subtleAddBtn {
   background: transparent;
-  border: none;
-  color: #888;
-  font-size: 1.2rem;
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  color: #aaa;
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
   cursor: pointer;
-}
-
-.dropZone {
-  border: 2px dashed rgba(255, 255, 255, 0.2);
-  border-radius: 8px;
-  padding: 2rem;
-  text-align: center;
-  margin-top: 1rem;
-  margin-bottom: 1rem;
-  position: relative;
-}
-
-.dropZone input {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  cursor: pointer;
-}
-
-.modalFooter {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.8rem;
-  margin-top: 1.5rem;
+  font-size: 0.8rem;
 }
 </style>
