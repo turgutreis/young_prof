@@ -260,7 +260,8 @@
                 <template #item.actions="{ item }">
                   <div class="tableActionsRow">
                     <label class="miniUploadBtn" :title="`${(item as any).title} konusuna PDF ekle`" @click.stop>
-                      ＋ PDF
+                      <span class="btnPlus">＋</span>
+                      <span class="btnText">PDF</span>
                       <input
                         type="file"
                         multiple
@@ -1688,9 +1689,10 @@ input:focus, textarea:focus, select:focus {
 /* 📊 VUETIFY CUSTOM ADMIN TABLE */
 .adminTableCard {
   background: #16161a;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid #333342;
   border-radius: 12px;
   overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
 .customAdminTable {
@@ -1698,23 +1700,38 @@ input:focus, textarea:focus, select:focus {
   color: #e2e8f0 !important;
 }
 
+.customAdminTable table {
+  border-collapse: collapse !important;
+  width: 100% !important;
+}
+
 .customAdminTable th {
-  background: #1a1a22 !important;
-  color: #94a3b8 !important;
-  font-weight: 700 !important;
-  font-size: 0.85rem !important;
+  background: #1a1a24 !important;
+  color: #cbd5e1 !important;
+  font-weight: 800 !important;
+  font-size: 0.82rem !important;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  letter-spacing: 0.06em;
+  border-bottom: 2px solid #475569 !important;
+  padding: 14px 16px !important;
 }
 
 .customAdminTable td {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+  border-bottom: 1px solid #333342 !important;
   font-size: 0.9rem;
+  padding: 14px 16px !important;
 }
 
-.customAdminTable tr:hover:not(.v-data-table__expanded__content) {
-  background: rgba(255, 255, 255, 0.03) !important;
+.customAdminTable tbody tr {
+  border-bottom: 1px solid #333342 !important;
+}
+
+.customAdminTable tbody tr:hover:not(.v-data-table__expanded__content) {
+  background: rgba(59, 130, 246, 0.08) !important;
+}
+
+.customAdminTable tbody tr:nth-child(even):not(.v-data-table__expanded__content) {
+  background: rgba(255, 255, 255, 0.015);
 }
 
 .tableNoBadge {
@@ -1780,7 +1797,46 @@ input:focus, textarea:focus, select:focus {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 0.5rem;
+  gap: 0.6rem;
+  white-space: nowrap;
+  flex-wrap: nowrap;
+}
+
+.miniUploadBtn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.35rem !important;
+  white-space: nowrap !important;
+  background: #1e3a8a !important;
+  color: #93c5fd !important;
+  border: 1px solid #3b82f6 !important;
+  padding: 0.45rem 0.85rem !important;
+  border-radius: 6px !important;
+  font-size: 0.8rem !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+  line-height: 1 !important;
+  flex-shrink: 0 !important;
+  transition: all 0.15s ease !important;
+}
+
+.miniUploadBtn:hover {
+  background: #2563eb !important;
+  color: #fff !important;
+}
+
+.miniUploadBtn .btnPlus {
+  font-size: 0.95rem;
+  line-height: 1;
+  font-weight: 900;
+}
+
+.miniUploadBtn .btnText {
+  font-size: 0.8rem;
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: 0.02em;
 }
 
 /* 🔍 EXPANDED ROW STYLING */
@@ -1868,17 +1924,6 @@ input:focus, textarea:focus, select:focus {
   display: flex;
   align-items: center;
   gap: 0.6rem;
-}
-
-.miniUploadBtn {
-  background: #1e3a8a;
-  color: #93c5fd;
-  border: 1px solid #3b82f6;
-  padding: 0.45rem 0.9rem;
-  border-radius: 6px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  cursor: pointer;
 }
 
 .deleteBtn {
