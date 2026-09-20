@@ -23,7 +23,8 @@ export default defineNuxtConfig({
     r2PublicUrl: process.env.R2_PUBLIC_URL || '',
     adminPassword: process.env.ADMIN_PASSWORD || 'young2026admin',
     public: {
-      appName: 'Young Professionals EU'
+      appName: 'Young Professionals EU',
+      appVersion: '2.2.0'
     }
   },
   app: {

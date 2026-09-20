@@ -1,5 +1,6 @@
 {
   "name": "sohbet-webseite",
+  "version": "2.2.0",
   "private": true,
   "type": "module",
   "scripts": {

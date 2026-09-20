@@ -5,7 +5,10 @@
       <div class="loginCard">
         <div class="loginHeader">
           <img src="/young-professionals-logo.png" alt="YP Logo" class="loginLogo" />
-          <h2>YP Yönetici Paneli</h2>
+          <div class="loginTitleRow">
+            <h2>YP Yönetici Paneli</h2>
+            <span class="versionBadge">v2.2.0</span>
+          </div>
           <p>İçerikleri ve Cloudflare R2 dosyalarını yönetmek için şifrenizi girin.</p>
         </div>
 
@@ -47,6 +50,7 @@
             <img src="/young-professionals-logo.png" alt="Logo" class="miniLogo" />
             <b>Young Professionals Admin</b>
           </NuxtLink>
+          <span class="versionBadge">v2.2.0</span>
           <span class="statusBadge">☁ Cloudflare R2 Aktif</span>
         </div>
 
@@ -1512,6 +1516,26 @@ input:focus, textarea:focus, select:focus {
 .miniLogo {
   width: 28px;
   height: auto;
+}
+
+.loginTitleRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+}
+
+.versionBadge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #94a3b8;
+  letter-spacing: 0.04em;
+  display: inline-flex;
+  align-items: center;
 }
 
 .statusBadge {
