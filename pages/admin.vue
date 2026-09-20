@@ -170,7 +170,7 @@
               </div>
             </div>
 
-            <!-- Topic Actions Toolbar -->
+            <!-- Topic Actions & Search Toolbar -->
             <div class="topicToolbar">
               <div class="topicToolbarLeft">
                 <button class="addBtn" @click="openNewEmptyTopic">
@@ -180,98 +180,191 @@
                   🔢 Numaraya Göre Sırala
                 </button>
               </div>
-              <span class="countBadge">
-                Toplam {{ currentStepTopics.length }} Konu Listeleniyor
-              </span>
+              <div class="topicToolbarRight">
+                <div class="adminSearchBox">
+                  <span class="searchIcon">🔍</span>
+                  <input
+                    v-model="adminTopicSearch"
+                    type="text"
+                    placeholder="Konu ara (örn: İhlas, 23, Namaz)..."
+                    class="adminSearchInput"
+                  />
+                  <button
+                    v-if="adminTopicSearch"
+                    class="clearSearchBtn"
+                    @click="adminTopicSearch = ''"
+                    title="Aramayı Temizle"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <span class="countBadge">
+                  Toplam {{ currentStepTopics.length }} Konu
+                </span>
+              </div>
             </div>
 
-            <!-- Topics List with Clean Visual Badges -->
-            <div class="topicsList">
-              <div
-                v-for="(topic, topicIdx) in currentStepTopics"
-                :key="topic.no + '-' + topicIdx"
-                class="topicItemCard"
+            <!-- Modern Vuetify Data Table with Single Expanded Slot -->
+            <div class="adminTableCard">
+              <v-data-table
+                v-model:expanded="expandedTopicRows"
+                :headers="topicTableHeaders"
+                :items="currentStepTopics"
+                :search="adminTopicSearch"
+                item-value="no"
+                expand-strategy="single"
+                show-expand
+                hover
+                class="customAdminTable"
+                :items-per-page="50"
+                density="comfortable"
               >
-                <div class="topicItemHeader">
-                  <div class="topicTitleRow">
-                    <input
-                      v-model="topic.no"
-                      type="text"
-                      class="topicNoInput"
-                      placeholder="No"
-                      title="Konu Numarası"
-                    />
-                    <input
-                      v-model="topic.title"
-                      type="text"
-                      class="topicTitleInput"
-                      placeholder="Konu Başlığı"
-                    />
+                <!-- Column: No -->
+                <template #item.no="{ item }">
+                  <span class="tableNoBadge">{{ (item as any).no }}</span>
+                </template>
+
+                <!-- Column: Title -->
+                <template #item.title="{ item }">
+                  <div class="tableTitleCell">
+                    <b>{{ (item as any).title }}</b>
                   </div>
-                  <div class="topicItemActions">
-                    <!-- Quick File Drop or Add for this Topic -->
-                    <label class="miniUploadBtn" :title="`${topic.title} konusuna PDF ekle`">
-                      ＋ PDF Yükle
+                </template>
+
+                <!-- Column: Files Count -->
+                <template #item.files="{ item }">
+                  <span :class="['tableFileCountBadge', { hasFiles: (item as any).files && (item as any).files.length > 0 }]">
+                    {{ (item as any).files ? (item as any).files.length : 0 }} PDF
+                  </span>
+                </template>
+
+                <!-- Column: File Type Preview Tags -->
+                <template #item.previewChips="{ item }">
+                  <div v-if="(item as any).files && (item as any).files.length" class="tableChipsRow">
+                    <span
+                      v-for="(f, fIdx) in (item as any).files.slice(0, 4)"
+                      :key="fIdx"
+                      :class="['miniFileChip', getBadgeClass(f.title)]"
+                      :title="f.title"
+                    >
+                      {{ getBadgeText(f.title).replace(/📄|📑|📊|❓|📝|📎/g, '').trim() }}
+                    </span>
+                    <span v-if="(item as any).files.length > 4" class="miniFileMore">
+                      +{{ (item as any).files.length - 4 }}
+                    </span>
+                  </div>
+                  <span v-else class="noFilesText">Dosya yok</span>
+                </template>
+
+                <!-- Column: Actions -->
+                <template #item.actions="{ item }">
+                  <div class="tableActionsRow">
+                    <label class="miniUploadBtn" :title="`${(item as any).title} konusuna PDF ekle`" @click.stop>
+                      ＋ PDF
                       <input
                         type="file"
                         multiple
                         accept=".pdf"
-                        @change="(e) => handleTopicSpecificUpload(e, topic)"
+                        @change="(e) => handleTopicSpecificUpload(e, item as any)"
                         style="display: none;"
                       />
                     </label>
                     <button
                       class="deleteBtn"
-                      @click="deleteTopic(topicIdx)"
+                      @click.stop="deleteTopic(item as any)"
                       title="Bu Konuyu Sil"
                     >
                       🗑
                     </button>
                   </div>
-                </div>
+                </template>
 
-                <!-- Topic Visual Files List (Zero URLs!) -->
-                <div class="topicFilesContainer">
-                  <div v-if="topic.files && topic.files.length" class="visualFilesGrid">
-                    <div
-                      v-for="(file, fileIdx) in topic.files"
-                      :key="fileIdx"
-                      class="fileChipCard"
-                    >
-                      <span :class="['fileTypeBadge', getBadgeClass(file.title)]">
-                        {{ getBadgeText(file.title) }}
-                      </span>
-                      <input
-                        v-model="file.title"
-                        type="text"
-                        class="fileChipTitleInput"
-                        placeholder="Dosya Adı"
-                      />
-                      <div class="fileChipActions">
-                        <a
-                          :href="file.href"
-                          target="_blank"
-                          class="chipActionBtn preview"
-                          title="Önizle / İndir"
-                        >
-                          👁
-                        </a>
-                        <button
-                          class="chipActionBtn delete"
-                          @click="removeFileFromTopic(topic, fileIdx)"
-                          title="Dosyayı Kaldır"
-                        >
-                          ✕
-                        </button>
+                <!-- EXPANDED ROW SLOT (SINGLE ROW EXPAND) -->
+                <template #expanded-row="{ columns, item }">
+                  <tr>
+                    <td :colspan="columns.length" class="expandedDetailCell">
+                      <div class="expandedTopicContainer">
+                        <!-- Quick Editor Header -->
+                        <div class="expandedTopicHeader">
+                          <div class="expandedEditRow">
+                            <label class="expandedInputGroup">
+                              <span class="inputLabel">Konu No:</span>
+                              <input
+                                v-model="(item as any).no"
+                                type="text"
+                                class="topicNoInput"
+                                placeholder="No"
+                              />
+                            </label>
+                            <label class="expandedInputGroup titleGroup">
+                              <span class="inputLabel">Konu Başlığı:</span>
+                              <input
+                                v-model="(item as any).title"
+                                type="text"
+                                class="topicTitleInput"
+                                placeholder="Konu Başlığı"
+                              />
+                            </label>
+                          </div>
+                          <div class="expandedHeaderActions">
+                            <label class="pickerBtn primaryPicker miniPicker">
+                              📂 Bu Konuya PDF Yükle
+                              <input
+                                type="file"
+                                multiple
+                                accept=".pdf"
+                                @change="(e) => handleTopicSpecificUpload(e, item as any)"
+                                style="display: none;"
+                              />
+                            </label>
+                          </div>
+                        </div>
+
+                        <!-- Visual File Chips Grid Inside Expanded Row -->
+                        <div class="expandedFilesBox">
+                          <div v-if="(item as any).files && (item as any).files.length" class="visualFilesGrid">
+                            <div
+                              v-for="(file, fileIdx) in (item as any).files"
+                              :key="fileIdx"
+                              class="fileChipCard"
+                            >
+                              <span :class="['fileTypeBadge', getBadgeClass(file.title)]">
+                                {{ getBadgeText(file.title) }}
+                              </span>
+                              <input
+                                v-model="file.title"
+                                type="text"
+                                class="fileChipTitleInput"
+                                placeholder="Dosya Adı"
+                              />
+                              <div class="fileChipActions">
+                                <a
+                                  :href="file.href"
+                                  target="_blank"
+                                  class="chipActionBtn preview"
+                                  title="Önizle / İndir"
+                                >
+                                  👁
+                                </a>
+                                <button
+                                  class="chipActionBtn delete"
+                                  @click="removeFileFromTopic(item as any, fileIdx)"
+                                  title="Dosyayı Kaldır"
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                          <div v-else class="emptyFilesPlaceholder">
+                            <span>Bu konuya henüz dosya eklenmedi. Yukarıdaki „📂 Bu Konuya PDF Yükle“ butonuna tıklayın veya dosyaları sürükleyin.</span>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </div>
-
-                  <div v-else class="emptyFilesPlaceholder">
-                    <span>Henüz dosya eklenmedi. Yukarıdaki „＋ PDF Yükle“ butonuna tıklayın veya dosyaları buraya sürükleyin.</span>
-                  </div>
-                </div>
-              </div>
+                    </td>
+                  </tr>
+                </template>
+              </v-data-table>
             </div>
           </section>
 
@@ -551,6 +644,18 @@ const currentStepTopics = computed<CurriculumTopic[]>({
     (content.value.curriculumTopics as any)[selectedStep.value] = val
   }
 })
+
+// Data Table State & Headers
+const adminTopicSearch = ref('')
+const expandedTopicRows = ref<string[]>([])
+
+const topicTableHeaders = [
+  { title: '#', key: 'no', width: '70px', sortable: true },
+  { title: 'Konu Başlığı', key: 'title', sortable: true },
+  { title: 'Dosya', key: 'files', width: '100px', sortable: false },
+  { title: 'Mevcut Dosyalar', key: 'previewChips', sortable: false },
+  { title: 'İşlemler', key: 'actions', width: '130px', sortable: false, align: 'end' as const }
+]
 
 function sortAllCurriculumSteps(target: SiteContent = content.value) {
   if (target && target.curriculumTopics) {
@@ -919,9 +1024,16 @@ function removeFileFromTopic(topic: CurriculumTopic, fileIdx: number) {
   topic.files.splice(fileIdx, 1)
 }
 
-function deleteTopic(index: number) {
+function deleteTopic(topicOrIdx: number | CurriculumTopic) {
   if (confirm('Bu konuyu ve bağlı dosyalarını silmek istediğinizden emin misiniz?')) {
-    currentStepTopics.value.splice(index, 1)
+    if (typeof topicOrIdx === 'number') {
+      currentStepTopics.value.splice(topicOrIdx, 1)
+    } else {
+      const idx = currentStepTopics.value.findIndex(t => t.no === topicOrIdx.no && t.title === topicOrIdx.title)
+      if (idx !== -1) {
+        currentStepTopics.value.splice(idx, 1)
+      }
+    }
   }
 }
 
@@ -1526,27 +1638,207 @@ input:focus, textarea:focus, select:focus {
 .countBadge {
   font-size: 0.85rem;
   color: #888;
+  white-space: nowrap;
 }
 
-/* TOPICS & VISUAL FILE CHIPS */
-.topicsList {
+.topicToolbarRight {
   display: flex;
-  flex-direction: column;
-  gap: 1.2rem;
+  align-items: center;
+  gap: 1rem;
 }
 
-.topicItemCard {
+.adminSearchBox {
+  display: flex;
+  align-items: center;
+  background: #1a1a22;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 0.35rem 0.8rem;
+  gap: 0.5rem;
+  width: 280px;
+  transition: border-color 0.2s;
+}
+
+.adminSearchBox:focus-within {
+  border-color: #3b82f6;
+  background: #20202a;
+}
+
+.adminSearchInput {
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 0.85rem;
+  width: 100%;
+  outline: none;
+}
+
+.clearSearchBtn {
+  background: transparent;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  font-size: 0.8rem;
+  padding: 2px 4px;
+}
+.clearSearchBtn:hover {
+  color: #fff;
+}
+
+/* 📊 VUETIFY CUSTOM ADMIN TABLE */
+.adminTableCard {
   background: #16161a;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
-  padding: 1.2rem 1.5rem;
+  overflow: hidden;
 }
 
-.topicItemHeader {
+.customAdminTable {
+  background: transparent !important;
+  color: #e2e8f0 !important;
+}
+
+.customAdminTable th {
+  background: #1a1a22 !important;
+  color: #94a3b8 !important;
+  font-weight: 700 !important;
+  font-size: 0.85rem !important;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.customAdminTable td {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+  font-size: 0.9rem;
+}
+
+.customAdminTable tr:hover:not(.v-data-table__expanded__content) {
+  background: rgba(255, 255, 255, 0.03) !important;
+}
+
+.tableNoBadge {
+  display: inline-block;
+  background: #26262e;
+  color: #38bdf8;
+  font-weight: 800;
+  font-size: 0.85rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
+  border: 1px solid rgba(56, 189, 248, 0.2);
+}
+
+.tableTitleCell {
+  font-weight: 600;
+  color: #fff;
+  font-size: 0.95rem;
+}
+
+.tableFileCountBadge {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  background: #24242c;
+  color: #888;
+}
+
+.tableFileCountBadge.hasFiles {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.tableChipsRow {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.miniFileChip {
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 0.2rem 0.45rem;
+  border-radius: 4px;
+}
+
+.miniFileMore {
+  font-size: 0.7rem;
+  color: #888;
+  font-weight: 700;
+}
+
+.noFilesText {
+  font-size: 0.75rem;
+  color: #666;
+  font-style: italic;
+}
+
+.tableActionsRow {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+/* 🔍 EXPANDED ROW STYLING */
+.expandedDetailCell {
+  padding: 0 !important;
+  background: #101013 !important;
+}
+
+.expandedTopicContainer {
+  padding: 1.5rem 2rem;
+  border-top: 1px dashed rgba(59, 130, 246, 0.3);
+  border-bottom: 1px dashed rgba(59, 130, 246, 0.3);
+  background: linear-gradient(180deg, rgba(37, 99, 235, 0.05) 0%, rgba(16, 16, 19, 0.8) 100%);
+}
+
+.expandedTopicHeader {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1rem;
+  margin-bottom: 1.2rem;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.expandedEditRow {
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+  flex: 1;
+}
+
+.expandedInputGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.expandedInputGroup.titleGroup {
+  flex: 1;
+}
+
+.inputLabel {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+
+.miniPicker {
+  padding: 0.45rem 0.9rem;
+  font-size: 0.8rem;
+}
+
+.expandedFilesBox {
+  background: #141418;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  padding: 1.2rem;
 }
 
 .topicTitleRow {

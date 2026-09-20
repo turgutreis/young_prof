@@ -88,22 +88,48 @@
 
               <!-- 2. Basamak Topic Folders -->
               <div v-if="openStep" class="fileShelf curriculumShelf">
-                <div>
-                  <span>2. Basamak</span>
-                  <h4>
-                    {{ openStep === 'ÖZEL GÜNLER' ? 'Özel Günler Dosyaları' : `${openStep} Kategorisi Dosyaları` }}
-                  </h4>
-                  <p>
-                    {{ currentTopics.length ? 'PDF dosyalarını görmek için konu başlığına tıklayın.' : 'Bu alana ilgili müfredat dosyaları yüklenecek.' }}
-                  </p>
+                <div class="curriculumShelfHeader">
+                  <div>
+                    <span>2. Basamak</span>
+                    <h4>
+                      {{ openStep === 'ÖZEL GÜNLER' ? 'Özel Günler Dosyaları' : `${openStep} Kategorisi Dosyaları` }}
+                    </h4>
+                    <p>
+                      {{ currentTopics.length ? 'PDF dosyalarını görmek için konu başlığına tıklayın.' : 'Bu alana ilgili müfredat dosyaları yüklenecek.' }}
+                    </p>
+                  </div>
+
+                  <!-- Live Search Bar -->
+                  <div v-if="currentTopics.length" class="topicSearchContainer">
+                    <div class="topicSearchInputWrapper">
+                      <span class="topicSearchIcon">🔍</span>
+                      <input
+                        v-model="topicSearchQuery"
+                        type="text"
+                        placeholder="Konularda ara (örn: İhlas, 23, Namaz)..."
+                        class="topicSearchInput"
+                      />
+                      <button
+                        v-if="topicSearchQuery"
+                        class="topicSearchClearBtn"
+                        @click="topicSearchQuery = ''"
+                        title="Aramayı Temizle"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                    <span v-if="topicSearchQuery" class="topicSearchBadge">
+                      {{ filteredTopics.length }} / {{ currentTopics.length }} konu
+                    </span>
+                  </div>
                 </div>
 
                 <div
-                  v-if="currentTopics.length"
+                  v-if="filteredTopics.length"
                   :class="['topicFolders', openStep === 'ÖZEL GÜNLER' ? 'topicSpecial' : `topic${openStep}`]"
                 >
                   <div
-                    v-for="topic in currentTopics"
+                    v-for="topic in filteredTopics"
                     :key="topic.no"
                     :class="['topicFolder', { topicOpen: openTopic === topic.no }]"
                   >
@@ -156,6 +182,12 @@
                       </div>
                     </div>
                   </div>
+                </div>
+
+                <div v-else-if="topicSearchQuery" class="topicSearchNoResults">
+                  <b>🔍</b>
+                  <p>„{{ topicSearchQuery }}“ aramasıyla eşleşen konu bulunamadı.</p>
+                  <button class="resetSearchBtn" @click="topicSearchQuery = ''">Tüm Konuları Göster</button>
                 </div>
 
                 <div v-else class="filePlaceholder">
@@ -754,11 +786,25 @@ const openReadingPlan = ref(true)
 const openCity = ref<string | null>(null)
 const openGuideSection = ref<string | null>('hamburg-places')
 const openActivityPlatform = ref<string | null>('Genç Aile')
+const topicSearchQuery = ref('')
 
 const currentTopics = computed(() => {
   if (!openStep.value) return []
   const list = (curriculumTopicsData.value as any)[openStep.value] || []
   return sortCurriculumTopics(list)
+})
+
+const filteredTopics = computed(() => {
+  const topics = currentTopics.value
+  const q = topicSearchQuery.value.trim().toLocaleLowerCase('tr-TR')
+  if (!q) return topics
+
+  return topics.filter(t => {
+    const noMatch = (t.no || '').toLocaleLowerCase('tr-TR').includes(q)
+    const titleMatch = (t.title || '').toLocaleLowerCase('tr-TR').includes(q)
+    const fileMatch = t.files && t.files.some(f => (f.title || '').toLocaleLowerCase('tr-TR').includes(q))
+    return noMatch || titleMatch || fileMatch
+  })
 })
 
 const previewModalOpen = ref(false)
@@ -803,6 +849,7 @@ function toggleCategory(id: string) {
 function selectStep(step: string) {
   openStep.value = openStep.value === step ? null : step
   openTopic.value = null
+  topicSearchQuery.value = ''
 }
 
 function toggleTopic(no: string) {
