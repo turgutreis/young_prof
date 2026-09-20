@@ -82,18 +82,33 @@
       </div>
 
       <div class="adminBody">
-        <!-- Sidebar Navigation Tabs -->
-        <aside class="adminSidebar">
-          <button
-            v-for="tab in tabs"
-            :key="tab.id"
-            :class="['sidebarTab', { active: activeTab === tab.id }]"
-            @click="activeTab = tab.id"
-          >
-            <span class="tabIcon">{{ tab.icon }}</span>
-            <span class="tabTitle">{{ tab.title }}</span>
-          </button>
-        </aside>
+        <!-- Sidebar Navigation Drawer: Expand on Hover & Rail Mode -->
+        <v-navigation-drawer
+          theme="dark"
+          expand-on-hover
+          rail
+          permanent
+          :rail-width="72"
+          :width="260"
+          class="customAdminDrawer"
+        >
+          <v-list density="comfortable" nav class="drawerNavList">
+            <v-list-item
+              v-for="tab in tabs"
+              :key="tab.id"
+              :value="tab.id"
+              :active="activeTab === tab.id"
+              @click="activeTab = tab.id"
+              class="drawerNavItem"
+              :class="{ activeTabItem: activeTab === tab.id }"
+            >
+              <template #prepend>
+                <span class="drawerTabIcon">{{ tab.icon }}</span>
+              </template>
+              <v-list-item-title class="drawerTabTitle">{{ tab.title }}</v-list-item-title>
+            </v-list-item>
+          </v-list>
+        </v-navigation-drawer>
 
         <!-- Main Content Editor Area -->
         <main class="adminContent">
@@ -1409,52 +1424,74 @@ input:focus, textarea:focus, select:focus {
   to { transform: rotate(360deg); }
 }
 
-/* BODY & SIDEBAR */
+/* BODY & NAVIGATION DRAWER (EXPAND ON HOVER) */
 .adminBody {
   display: flex;
   flex: 1;
+  min-height: calc(100vh - 70px);
+  position: relative;
 }
 
-.adminSidebar {
-  width: 260px;
-  background: #121215;
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
-  padding: 1.5rem 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
+:deep(.customAdminDrawer) {
+  background: #121216 !important;
+  border-right: 1px solid #282834 !important;
+  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  box-shadow: 4px 0 20px rgba(0, 0, 0, 0.4) !important;
+  z-index: 100 !important;
+  top: 70px !important;
+  height: calc(100vh - 70px) !important;
 }
 
-.sidebarTab {
-  display: flex;
+:deep(.drawerNavList) {
+  padding: 1.2rem 0.5rem !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.5rem !important;
+}
+
+:deep(.drawerNavItem) {
+  border-radius: 8px !important;
+  color: #94a3b8 !important;
+  padding: 0.7rem 0.8rem !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+
+:deep(.drawerNavItem:hover) {
+  background: #1c1c28 !important;
+  color: #fff !important;
+}
+
+:deep(.drawerNavItem.activeTabItem),
+:deep(.drawerNavItem.v-list-item--active) {
+  background: #2563eb !important;
+  color: #fff !important;
+  font-weight: 700 !important;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35) !important;
+}
+
+:deep(.drawerTabIcon) {
+  font-size: 1.35rem;
+  margin-right: 0.8rem;
+  display: inline-flex;
   align-items: center;
-  gap: 0.8rem;
-  padding: 0.8rem 1rem;
-  border-radius: 8px;
-  border: none;
-  background: transparent;
-  color: #999;
-  font-size: 0.95rem;
-  cursor: pointer;
-  text-align: left;
-  transition: all 0.2s;
+  justify-content: center;
+  width: 24px;
 }
 
-.sidebarTab:hover {
-  background: #1c1c22;
-  color: #fff;
-}
-
-.sidebarTab.active {
-  background: #2563eb;
-  color: #fff;
-  font-weight: 600;
+:deep(.drawerTabTitle) {
+  font-size: 0.92rem !important;
+  font-weight: 600 !important;
+  white-space: nowrap !important;
 }
 
 .adminContent {
   flex: 1;
-  padding: 2.5rem 3rem;
-  max-width: 1200px;
+  padding: 2rem 2.5rem;
+  margin-left: 72px;
+  max-width: 1450px;
+  width: calc(100% - 72px);
+  transition: all 0.2s ease;
 }
 
 .sectionHeader {
