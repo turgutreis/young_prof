@@ -2180,15 +2180,43 @@ input:focus, textarea:focus, select:focus {
   box-sizing: border-box !important;
 }
 
+.deleteBtn,
+:deep(.deleteBtn) {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: rgba(239, 68, 68, 0.18) !important;
+  color: #f87171 !important;
+  border: 1px solid rgba(239, 68, 68, 0.38) !important;
+  padding: 0.45rem 0.75rem !important;
+  border-radius: 6px !important;
+  cursor: pointer !important;
+  font-size: 0.9rem !important;
+  line-height: 1 !important;
+  transition: all 0.15s ease !important;
+}
+
+.deleteBtn:hover,
+:deep(.deleteBtn:hover) {
+  background: #dc2626 !important;
+  color: #ffffff !important;
+  border-color: #ef4444 !important;
+}
+
+.visualFilesGrid,
 :deep(.visualFilesGrid) {
-  display: grid !important;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)) !important;
-  gap: 0.85rem !important;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 0.8rem !important;
   width: 100% !important;
   box-sizing: border-box !important;
 }
 
+.fileChipCard,
 :deep(.fileChipCard) {
+  flex: 1 1 270px !important;
+  min-width: 250px !important;
+  max-width: 100% !important;
   background: #181822 !important;
   border: 1px solid #2d2d3d !important;
   border-radius: 8px !important;
@@ -2196,18 +2224,17 @@ input:focus, textarea:focus, select:focus {
   display: flex !important;
   align-items: center !important;
   gap: 0.6rem !important;
-  min-width: 0 !important;
-  max-width: 100% !important;
-  overflow: hidden !important;
   box-sizing: border-box !important;
   transition: all 0.15s ease !important;
 }
 
+.fileChipCard:hover,
 :deep(.fileChipCard:hover) {
   background: #1f1f2c !important;
   border-color: #3b82f6 !important;
 }
 
+.fileTypeBadge,
 :deep(.fileTypeBadge) {
   font-size: 0.65rem !important;
   font-weight: 800 !important;
@@ -2218,15 +2245,16 @@ input:focus, textarea:focus, select:focus {
   line-height: 1.2 !important;
 }
 
-:deep(.badgeAna) { background: #2563eb !important; color: #fff !important; }
-:deep(.badgeHandout) { background: #059669 !important; color: #fff !important; }
-:deep(.badgeSunum) { background: #d97706 !important; color: #fff !important; }
-:deep(.badgeKahoot) { background: #7c3aed !important; color: #fff !important; }
-:deep(.badgeDefault) { background: #475569 !important; color: #fff !important; }
+.badgeAna, :deep(.badgeAna) { background: #2563eb !important; color: #fff !important; }
+.badgeHandout, :deep(.badgeHandout) { background: #059669 !important; color: #fff !important; }
+.badgeSunum, :deep(.badgeSunum) { background: #d97706 !important; color: #fff !important; }
+.badgeKahoot, :deep(.badgeKahoot) { background: #7c3aed !important; color: #fff !important; }
+.badgeDefault, :deep(.badgeDefault) { background: #475569 !important; color: #fff !important; }
 
+.fileChipTitleInput,
 :deep(.fileChipTitleInput) {
-  flex: 1 1 0% !important;
-  min-width: 0 !important;
+  flex: 1 1 auto !important;
+  min-width: 80px !important;
   width: 100% !important;
   background: transparent !important;
   border: 1px solid transparent !important;
@@ -2238,12 +2266,14 @@ input:focus, textarea:focus, select:focus {
   text-overflow: ellipsis !important;
 }
 
+.fileChipTitleInput:focus,
 :deep(.fileChipTitleInput:focus) {
   background: #0f0f15 !important;
   border-color: #3b82f6 !important;
   outline: none !important;
 }
 
+.fileChipActions,
 :deep(.fileChipActions) {
   display: flex !important;
   align-items: center !important;
@@ -2252,6 +2282,7 @@ input:focus, textarea:focus, select:focus {
   margin-left: auto !important;
 }
 
+.chipActionBtn,
 :deep(.chipActionBtn) {
   display: inline-flex !important;
   align-items: center !important;
@@ -2259,8 +2290,6 @@ input:focus, textarea:focus, select:focus {
   width: 28px !important;
   height: 28px !important;
   border-radius: 6px !important;
-  background: #242432 !important;
-  border: 1px solid #333346 !important;
   cursor: pointer !important;
   font-size: 0.85rem !important;
   line-height: 1 !important;
@@ -2270,28 +2299,37 @@ input:focus, textarea:focus, select:focus {
   flex-shrink: 0 !important;
 }
 
+.chipActionBtn.preview,
 :deep(.chipActionBtn.preview) {
+  background: rgba(37, 99, 235, 0.18) !important;
+  border: 1px solid rgba(59, 130, 246, 0.4) !important;
   color: #60a5fa !important;
 }
 
+.chipActionBtn.preview:hover,
 :deep(.chipActionBtn.preview:hover) {
-  background: #1e3a8a !important;
+  background: #2563eb !important;
   border-color: #3b82f6 !important;
-  color: #93c5fd !important;
+  color: #ffffff !important;
   transform: translateY(-1px) !important;
 }
 
+.chipActionBtn.delete,
 :deep(.chipActionBtn.delete) {
-  color: #94a3b8 !important;
+  background: rgba(239, 68, 68, 0.18) !important;
+  border: 1px solid rgba(239, 68, 68, 0.38) !important;
+  color: #f87171 !important;
 }
 
+.chipActionBtn.delete:hover,
 :deep(.chipActionBtn.delete:hover) {
-  background: #7f1d1d !important;
+  background: #dc2626 !important;
   border-color: #ef4444 !important;
-  color: #fca5a5 !important;
+  color: #ffffff !important;
   transform: translateY(-1px) !important;
 }
 
+.emptyFilesPlaceholder,
 :deep(.emptyFilesPlaceholder) {
   color: #666 !important;
   font-size: 0.85rem !important;
