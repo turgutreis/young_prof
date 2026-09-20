@@ -288,7 +288,7 @@
                     </label>
                     <button
                       class="deleteBtn"
-                      @click.stop="deleteTopic(item as any)"
+                      @click.stop="confirmDeleteTopic(item as any)"
                       title="Bu Konuyu Sil"
                     >
                       🗑
@@ -365,7 +365,7 @@
                                 </a>
                                 <button
                                   class="chipActionBtn delete"
-                                  @click="removeFileFromTopic(item as any, fileIdx)"
+                                  @click="confirmRemoveFile(item as any, fileIdx)"
                                   title="Dosyayı Kaldır"
                                 >
                                   ✕
@@ -442,7 +442,7 @@
                     <label>Ay / Yıl</label>
                     <input v-model="meeting.monthYear" type="text" placeholder="Örn. EKİM 2026" />
                   </div>
-                  <button class="deleteBtn" @click="content.announcement.meetings.splice(mIdx, 1)">
+                  <button class="deleteBtn" @click="confirmDeleteMeeting(mIdx)">
                     🗑
                   </button>
                 </div>
@@ -496,7 +496,7 @@
                     <label>Satın Alma / Detay Linki</label>
                     <input v-model="book.href" type="text" />
                   </div>
-                  <button class="deleteBtn" @click="content.readingPlanBooks.splice(bIdx, 1)">
+                  <button class="deleteBtn" @click="confirmDeleteBook(bIdx)">
                     🗑 Kitabı Kaldır
                   </button>
                 </div>
@@ -525,7 +525,7 @@
                 <div class="platformItemRow">
                   <b>{{ String(pIdx + 1).padStart(2, '0') }}</b>
                   <input v-model="content.activityPlatforms[pIdx]" type="text" class="platNameInput" />
-                  <button class="deleteBtn" @click="content.activityPlatforms.splice(pIdx, 1)">
+                  <button class="deleteBtn" @click="confirmDeletePlatform(pIdx)">
                     🗑
                   </button>
                 </div>
@@ -580,7 +580,7 @@
                   <input v-model="stop.name" type="text" placeholder="Yer Adı" />
                   <input v-model="stop.note" type="text" placeholder="Not (Örn. Seyir terası)" />
                   <input v-model="stop.href" type="text" placeholder="Google Maps Linki" />
-                  <button class="deleteBtn" @click="content.cityGuides.hamburgStops.splice(sIdx, 1)">✕</button>
+                  <button class="deleteBtn" @click="confirmDeleteCityStop('hamburg', sIdx)">✕</button>
                 </div>
                 <button class="subtleAddBtn" @click="content.cityGuides.hamburgStops.push({ name: '', note: '', href: '' })">
                   ＋ Hamburg Durağı Ekle
@@ -594,7 +594,7 @@
                   <input v-model="stop.name" type="text" placeholder="Yer Adı" />
                   <input v-model="stop.note" type="text" placeholder="Not (Örn. Tekne turu)" />
                   <input v-model="stop.href" type="text" placeholder="Google Maps Linki" />
-                  <button class="deleteBtn" @click="content.cityGuides.frankfurtStops.splice(sIdx, 1)">✕</button>
+                  <button class="deleteBtn" @click="confirmDeleteCityStop('frankfurt', sIdx)">✕</button>
                 </div>
                 <button class="subtleAddBtn" @click="content.cityGuides.frankfurtStops.push({ name: '', note: '', href: '' })">
                   ＋ Frankfurt Durağı Ekle
@@ -604,6 +604,54 @@
           </section>
         </main>
       </div>
+
+      <!-- REUSABLE CONFIRMATION / DELETE MODAL -->
+      <v-dialog
+        v-model="confirmDialog.isOpen"
+        max-width="480px"
+        transition="dialog-top-transition"
+        class="confirmDeleteModal"
+      >
+        <v-card class="confirmCard" theme="dark">
+          <div class="confirmCardHeader">
+            <div class="confirmIconWrapper">
+              <span class="confirmIcon">{{ confirmDialog.icon || '🗑️' }}</span>
+            </div>
+            <div class="confirmHeaderInfo">
+              <h3 class="confirmTitle">{{ confirmDialog.title }}</h3>
+              <p class="confirmSubtitle">{{ confirmDialog.message }}</p>
+            </div>
+          </div>
+
+          <v-card-text v-if="confirmDialog.itemName || confirmDialog.itemSubtext" class="confirmCardBody">
+            <div v-if="confirmDialog.itemName" class="confirmTargetBox">
+              <span class="confirmTargetLabel">Seçilen Öğe:</span>
+              <strong class="confirmTargetName">{{ confirmDialog.itemName }}</strong>
+            </div>
+            <p v-if="confirmDialog.itemSubtext" class="confirmSubtext">
+              {{ confirmDialog.itemSubtext }}
+            </p>
+          </v-card-text>
+
+          <v-card-actions class="confirmCardActions">
+            <v-spacer />
+            <button
+              type="button"
+              class="confirmBtn cancelBtn"
+              @click="confirmDialog.isOpen = false"
+            >
+              {{ confirmDialog.cancelText || 'Vazgeç' }}
+            </button>
+            <button
+              type="button"
+              class="confirmBtn dangerBtn"
+              @click="handleConfirmDialogAction"
+            >
+              {{ confirmDialog.confirmText || 'Evet, Sil' }}
+            </button>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
     </div>
   </div>
 </template>
@@ -1037,21 +1085,170 @@ async function handleTopicSpecificUpload(e: Event, topic: CurriculumTopic) {
   setTimeout(() => { feedbackMsg.value = '' }, 4000)
 }
 
-function removeFileFromTopic(topic: CurriculumTopic, fileIdx: number) {
-  topic.files.splice(fileIdx, 1)
+// ==========================================
+// 🛡️ CONFIRMATION / DELETE DIALOG SYSTEM
+// ==========================================
+interface ConfirmDialogState {
+  isOpen: boolean
+  title: string
+  message: string
+  itemName?: string
+  itemSubtext?: string
+  confirmText?: string
+  cancelText?: string
+  icon?: string
+  onConfirm: () => void | Promise<void>
 }
 
-function deleteTopic(topicOrIdx: number | CurriculumTopic) {
-  if (confirm('Bu konuyu ve bağlı dosyalarını silmek istediğinizden emin misiniz?')) {
-    if (typeof topicOrIdx === 'number') {
-      currentStepTopics.value.splice(topicOrIdx, 1)
-    } else {
-      const idx = currentStepTopics.value.findIndex(t => t.no === topicOrIdx.no && t.title === topicOrIdx.title)
+const confirmDialog = ref<ConfirmDialogState>({
+  isOpen: false,
+  title: '',
+  message: '',
+  itemName: '',
+  itemSubtext: '',
+  confirmText: 'Evet, Sil',
+  cancelText: 'Vazgeç',
+  icon: '🗑️',
+  onConfirm: () => {}
+})
+
+function triggerConfirm(options: {
+  title: string
+  message: string
+  itemName?: string
+  itemSubtext?: string
+  confirmText?: string
+  cancelText?: string
+  icon?: string
+  onConfirm: () => void | Promise<void>
+}) {
+  confirmDialog.value = {
+    isOpen: true,
+    title: options.title,
+    message: options.message,
+    itemName: options.itemName || '',
+    itemSubtext: options.itemSubtext || '',
+    confirmText: options.confirmText || 'Evet, Sil',
+    cancelText: options.cancelText || 'Vazgeç',
+    icon: options.icon || '🗑️',
+    onConfirm: options.onConfirm
+  }
+}
+
+async function handleConfirmDialogAction() {
+  const cb = confirmDialog.value.onConfirm
+  confirmDialog.value.isOpen = false
+  if (cb) {
+    await cb()
+  }
+}
+
+function confirmDeleteTopic(topic: CurriculumTopic) {
+  const fileCount = topic.files ? topic.files.length : 0
+  triggerConfirm({
+    title: 'Konuyu Sil',
+    message: 'Bu konuyu ve bağlı tüm dosyalarını silmek istediğinizden emin misiniz?',
+    itemName: `#${topic.no} - ${topic.title}`,
+    itemSubtext: fileCount > 0 ? `⚠️ Bu konuya ait ${fileCount} adet dosya da listeden silinecektir.` : undefined,
+    confirmText: 'Evet, Konuyu Sil',
+    icon: '🗑️',
+    onConfirm: () => {
+      const idx = currentStepTopics.value.findIndex(t => t.no === topic.no && t.title === topic.title)
       if (idx !== -1) {
         currentStepTopics.value.splice(idx, 1)
+        feedbackType.value = 'success'
+        feedbackMsg.value = `"${topic.title}" konusu silindi.`
+        setTimeout(() => { feedbackMsg.value = '' }, 3000)
       }
     }
-  }
+  })
+}
+
+function confirmRemoveFile(topic: CurriculumTopic, fileIdx: number) {
+  const file = topic.files[fileIdx]
+  triggerConfirm({
+    title: 'Dosyayı Kaldır',
+    message: `"${topic.title}" konusuna bağlı bu dosyayı listeden kaldırmak istiyor musunuz?`,
+    itemName: file ? file.title : 'Dosya',
+    confirmText: 'Evet, Kaldır',
+    icon: '📄',
+    onConfirm: () => {
+      topic.files.splice(fileIdx, 1)
+      feedbackType.value = 'success'
+      feedbackMsg.value = `"${file?.title || 'Dosya'}" kaldırıldı.`
+      setTimeout(() => { feedbackMsg.value = '' }, 3000)
+    }
+  })
+}
+
+function confirmDeleteMeeting(mIdx: number) {
+  const meeting = content.value.announcement.meetings[mIdx]
+  triggerConfirm({
+    title: 'Buluşma Tarihini Sil',
+    message: 'Bu buluşma tarihini listeden silmek istediğinizden emin misiniz?',
+    itemName: meeting ? `${meeting.title} (${meeting.dateRange} ${meeting.monthYear})` : 'Buluşma',
+    confirmText: 'Evet, Sil',
+    icon: '📅',
+    onConfirm: () => {
+      content.value.announcement.meetings.splice(mIdx, 1)
+      feedbackType.value = 'success'
+      feedbackMsg.value = 'Buluşma tarihi silindi.'
+      setTimeout(() => { feedbackMsg.value = '' }, 3000)
+    }
+  })
+}
+
+function confirmDeleteBook(bIdx: number) {
+  const book = content.value.readingPlanBooks[bIdx]
+  triggerConfirm({
+    title: 'Kitabı Kaldır',
+    message: 'Bu kitabı okuma planından silmek istediğinizden emin misiniz?',
+    itemName: book ? `${book.title} (${book.author})` : 'Kitap',
+    confirmText: 'Evet, Kitabı Sil',
+    icon: '📚',
+    onConfirm: () => {
+      content.value.readingPlanBooks.splice(bIdx, 1)
+      feedbackType.value = 'success'
+      feedbackMsg.value = `"${book?.title || 'Kitap'}" silindi.`
+      setTimeout(() => { feedbackMsg.value = '' }, 3000)
+    }
+  })
+}
+
+function confirmDeletePlatform(pIdx: number) {
+  const plat = content.value.activityPlatforms[pIdx]
+  triggerConfirm({
+    title: 'Platformu Sil',
+    message: 'Bu gençlik platformunu listeden silmek istediğinizden emin misiniz?',
+    itemName: plat,
+    confirmText: 'Evet, Sil',
+    icon: '👥',
+    onConfirm: () => {
+      content.value.activityPlatforms.splice(pIdx, 1)
+      feedbackType.value = 'success'
+      feedbackMsg.value = `"${plat}" platformu silindi.`
+      setTimeout(() => { feedbackMsg.value = '' }, 3000)
+    }
+  })
+}
+
+function confirmDeleteCityStop(city: 'hamburg' | 'frankfurt', sIdx: number) {
+  const stops = city === 'hamburg' ? content.value.cityGuides.hamburgStops : content.value.cityGuides.frankfurtStops
+  const stop = stops[sIdx]
+  const cityName = city === 'hamburg' ? 'Hamburg' : 'Frankfurt'
+  triggerConfirm({
+    title: `${cityName} Gezi Durağını Sil`,
+    message: `Bu durağı ${cityName} gezi rehberinden silmek istediğinizden emin misiniz?`,
+    itemName: stop?.name || 'Durak',
+    confirmText: 'Evet, Sil',
+    icon: '🗺️',
+    onConfirm: () => {
+      stops.splice(sIdx, 1)
+      feedbackType.value = 'success'
+      feedbackMsg.value = `${cityName} durağı silindi.`
+      setTimeout(() => { feedbackMsg.value = '' }, 3000)
+    }
+  })
 }
 
 function openNewEmptyTopic() {
@@ -2201,5 +2398,138 @@ input:focus, textarea:focus, select:focus {
   border-radius: 6px;
   cursor: pointer;
   font-size: 0.8rem;
+}
+
+/* CONFIRMATION / DELETE MODAL */
+:deep(.confirmDeleteModal .v-overlay__content) {
+  padding: 1rem !important;
+}
+
+.confirmCard {
+  background: #15151e !important;
+  border: 1px solid #2e2e3e !important;
+  border-radius: 16px !important;
+  padding: 1.5rem !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.75) !important;
+  overflow: hidden;
+}
+
+.confirmCardHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.2rem;
+  margin-bottom: 1.2rem;
+}
+
+.confirmIconWrapper {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.confirmIcon {
+  font-size: 1.5rem;
+}
+
+.confirmHeaderInfo {
+  flex: 1;
+}
+
+.confirmTitle {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 0.35rem 0;
+}
+
+.confirmSubtitle {
+  font-size: 0.9rem;
+  color: #94a3b8;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.confirmCardBody {
+  padding: 0 0 1.2rem 0 !important;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.confirmTargetBox {
+  background: #0d0d12;
+  border: 1px solid #232330;
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.confirmTargetLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.confirmTargetName {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  word-break: break-word;
+}
+
+.confirmSubtext {
+  font-size: 0.85rem;
+  color: #f59e0b;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.confirmCardActions {
+  padding: 0 !important;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.confirmBtn {
+  padding: 0.65rem 1.25rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.cancelBtn {
+  background: #242432;
+  color: #94a3b8;
+}
+
+.cancelBtn:hover {
+  background: #323244;
+  color: #fff;
+}
+
+.dangerBtn {
+  background: #dc2626;
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(220, 38, 38, 0.4);
+}
+
+.dangerBtn:hover {
+  background: #ef4444;
+  box-shadow: 0 6px 18px rgba(239, 68, 68, 0.5);
+  transform: translateY(-1px);
 }
 </style>
