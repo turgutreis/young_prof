@@ -207,6 +207,7 @@
             <!-- Modern Vuetify Data Table with Single Expanded Slot -->
             <div class="adminTableCard">
               <v-data-table
+                theme="dark"
                 v-model:expanded="expandedTopicRows"
                 :headers="topicTableHeaders"
                 :items="currentStepTopics"
@@ -651,11 +652,11 @@ const adminTopicSearch = ref('')
 const expandedTopicRows = ref<string[]>([])
 
 const topicTableHeaders = [
-  { title: '#', key: 'no', width: '70px', sortable: true },
+  { title: '#', key: 'no', width: '75px', sortable: true },
   { title: 'Konu Başlığı', key: 'title', sortable: true },
   { title: 'Dosya', key: 'files', width: '100px', sortable: false },
   { title: 'Mevcut Dosyalar', key: 'previewChips', sortable: false },
-  { title: 'İşlemler', key: 'actions', width: '130px', sortable: false, align: 'end' as const }
+  { title: 'İşlemler', key: 'actions', width: '150px', sortable: false, align: 'end' as const }
 ]
 
 function sortAllCurriculumSteps(target: SiteContent = content.value) {
@@ -1688,26 +1689,26 @@ input:focus, textarea:focus, select:focus {
 
 /* 📊 VUETIFY CUSTOM ADMIN TABLE */
 .adminTableCard {
-  background: #16161a;
-  border: 1px solid #333342;
+  background: #141418;
+  border: 1px solid #383848;
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4);
 }
 
-.customAdminTable {
+:deep(.customAdminTable) {
   background: transparent !important;
   color: #e2e8f0 !important;
 }
 
-.customAdminTable table {
+:deep(.customAdminTable .v-table__wrapper > table) {
   border-collapse: collapse !important;
   width: 100% !important;
 }
 
-.customAdminTable th {
-  background: #1a1a24 !important;
-  color: #cbd5e1 !important;
+:deep(.customAdminTable .v-table__wrapper > table > thead > tr > th) {
+  background: #181822 !important;
+  color: #94a3b8 !important;
   font-weight: 800 !important;
   font-size: 0.82rem !important;
   text-transform: uppercase;
@@ -1716,25 +1717,36 @@ input:focus, textarea:focus, select:focus {
   padding: 14px 16px !important;
 }
 
-.customAdminTable td {
-  border-bottom: 1px solid #333342 !important;
-  font-size: 0.9rem;
+:deep(.customAdminTable .v-table__wrapper > table > tbody > tr > td) {
+  border-bottom: 1px solid #383848 !important;
+  font-size: 0.92rem !important;
   padding: 14px 16px !important;
+  vertical-align: middle !important;
 }
 
-.customAdminTable tbody tr {
-  border-bottom: 1px solid #333342 !important;
+:deep(.customAdminTable .v-table__wrapper > table > tbody > tr) {
+  border-bottom: 1px solid #383848 !important;
+  transition: background 0.15s ease;
 }
 
-.customAdminTable tbody tr:hover:not(.v-data-table__expanded__content) {
+:deep(.customAdminTable .v-table__wrapper > table > tbody > tr:hover:not(.v-data-table__expanded__content)) {
   background: rgba(59, 130, 246, 0.08) !important;
 }
 
-.customAdminTable tbody tr:nth-child(even):not(.v-data-table__expanded__content) {
-  background: rgba(255, 255, 255, 0.015);
+:deep(.customAdminTable .v-table__wrapper > table > tbody > tr:nth-child(even):not(.v-data-table__expanded__content)) {
+  background: rgba(255, 255, 255, 0.02) !important;
 }
 
-.tableNoBadge {
+:deep(.customAdminTable .v-data-table__expanded__content) {
+  background: #0e0e12 !important;
+}
+
+:deep(.customAdminTable .v-data-table__expanded__content > td) {
+  padding: 0 !important;
+  border-bottom: 2px solid rgba(59, 130, 246, 0.4) !important;
+}
+
+:deep(.tableNoBadge) {
   display: inline-block;
   background: #26262e;
   color: #38bdf8;
@@ -1745,13 +1757,13 @@ input:focus, textarea:focus, select:focus {
   border: 1px solid rgba(56, 189, 248, 0.2);
 }
 
-.tableTitleCell {
+:deep(.tableTitleCell) {
   font-weight: 600;
   color: #fff;
   font-size: 0.95rem;
 }
 
-.tableFileCountBadge {
+:deep(.tableFileCountBadge) {
   display: inline-block;
   font-size: 0.75rem;
   font-weight: 700;
@@ -1761,39 +1773,40 @@ input:focus, textarea:focus, select:focus {
   color: #888;
 }
 
-.tableFileCountBadge.hasFiles {
+:deep(.tableFileCountBadge.hasFiles) {
   background: rgba(16, 185, 129, 0.15);
   color: #34d399;
   border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
-.tableChipsRow {
+:deep(.tableChipsRow) {
   display: flex;
   align-items: center;
   gap: 0.4rem;
   flex-wrap: wrap;
 }
 
-.miniFileChip {
+:deep(.miniFileChip) {
   font-size: 0.65rem;
   font-weight: 800;
   padding: 0.2rem 0.45rem;
   border-radius: 4px;
+  white-space: nowrap;
 }
 
-.miniFileMore {
+:deep(.miniFileMore) {
   font-size: 0.7rem;
   color: #888;
   font-weight: 700;
 }
 
-.noFilesText {
+:deep(.noFilesText) {
   font-size: 0.75rem;
   color: #666;
   font-style: italic;
 }
 
-.tableActionsRow {
+:deep(.tableActionsRow) {
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -1802,7 +1815,7 @@ input:focus, textarea:focus, select:focus {
   flex-wrap: nowrap;
 }
 
-.miniUploadBtn {
+:deep(.miniUploadBtn) {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -1821,18 +1834,18 @@ input:focus, textarea:focus, select:focus {
   transition: all 0.15s ease !important;
 }
 
-.miniUploadBtn:hover {
+:deep(.miniUploadBtn:hover) {
   background: #2563eb !important;
   color: #fff !important;
 }
 
-.miniUploadBtn .btnPlus {
+:deep(.miniUploadBtn .btnPlus) {
   font-size: 0.95rem;
   line-height: 1;
   font-weight: 900;
 }
 
-.miniUploadBtn .btnText {
+:deep(.miniUploadBtn .btnText) {
   font-size: 0.8rem;
   line-height: 1;
   font-weight: 700;
