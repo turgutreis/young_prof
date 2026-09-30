@@ -698,7 +698,7 @@
         <img src="/young-professionals-logo.png" alt="Young Professionals" />
       </a>
       <p>Gençler için, gençlerle birlikte.</p>
-      <span>© 2026 · v2.2.0</span>
+      <span>© 2026 · v2.3.0</span>
     </footer>
 
     <!-- Global Persistent Audio Player Bar -->
