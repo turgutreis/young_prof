@@ -1474,29 +1474,39 @@ nav a:hover:after {
 .announcement {
   margin: 0 5vw 100px;
   background: #9fe4df;
-  padding: 48px;
+  padding: 40px 48px;
   display: grid;
-  grid-template-columns: 1fr auto auto;
+  grid-template-columns: 1.15fr auto auto;
   align-items: center;
-  gap: 55px;
-  border-radius: 4px;
+  gap: 36px;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+}
+
+.announcementContent {
+  display: flex;
+  flex-direction: column;
 }
 
 .announcement h2 {
-  font-size: 38px;
-  margin: 0 0 10px;
-  letter-spacing: -0.04em;
+  font-size: clamp(26px, 3vw, 36px);
+  margin: 0 0 12px;
+  letter-spacing: -0.035em;
   font-weight: 900;
+  line-height: 1.15;
+  color: var(--navy);
 }
 
 .announcement p {
   margin: 0;
-  max-width: 600px;
-  line-height: 1.5;
+  max-width: 520px;
+  line-height: 1.55;
+  font-size: 14.5px;
+  color: rgba(8, 8, 8, 0.85);
 }
 
 .announcement .eyebrow {
-  margin-bottom: 18px;
+  margin-bottom: 14px;
 }
 
 .eyebrow {
@@ -1519,29 +1529,68 @@ nav a:hover:after {
 
 .datesContainer {
   display: flex;
-  align-items: center;
-  gap: 30px;
+  align-items: stretch;
+  gap: 16px;
   flex-wrap: wrap;
 }
 
-.date {
+.meetingDateCard {
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(8, 8, 8, 0.08);
+  border-radius: 10px;
+  padding: 14px 18px;
   display: flex;
-  align-items: center;
-  gap: 12px;
-  border-left: 1px solid rgba(17, 29, 53, 0.25);
-  padding-left: 30px;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  min-width: 150px;
+  max-width: 280px;
+  transition: all 0.2s ease;
 }
 
-.date b {
-  font-size: 44px;
-  font-weight: 900;
-  white-space: nowrap;
+.meetingDateCard:hover {
+  background: rgba(255, 255, 255, 0.8);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
 }
 
-.date span {
+.meetingBadge {
   font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: rgba(8, 8, 8, 0.7);
+  background: rgba(8, 8, 8, 0.06);
+  padding: 3px 8px;
+  border-radius: 4px;
+  width: fit-content;
+  text-transform: uppercase;
+  line-height: 1.2;
+}
+
+.meetingDateBody {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.meetingRange {
+  font-size: clamp(19px, 2vw, 28px);
   font-weight: 900;
-  line-height: 1.3;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  color: var(--navy);
+  word-break: normal;
+}
+
+.meetingMonth {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: rgba(8, 8, 8, 0.65);
+  text-transform: uppercase;
+  line-height: 1.2;
 }
 
 .adminNavBtn {
@@ -1562,19 +1611,28 @@ nav a:hover:after {
   color: #fff;
 }
 
-.announcement > a {
+.announcement > a,
+.announcementBtn {
   background: var(--navy);
   color: white;
-  padding: 16px 20px;
-  font-size: 12px;
-  font-weight: 900;
-  border-radius: 2px;
-  transition: background 0.2s;
+  padding: 14px 22px;
+  font-size: 13px;
+  font-weight: 800;
+  border-radius: 6px;
+  transition: all 0.2s ease;
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
 }
 
-.announcement > a:hover {
+.announcement > a:hover,
+.announcementBtn:hover {
   background: var(--coral);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(201, 29, 39, 0.3);
 }
 
 /* Contact Section */
@@ -1805,16 +1863,27 @@ footer p {
   }
   .categoryCard,
   .categoryCard:nth-child(4),
-  .categoryCard:nth-child(5) {
-    grid-column: span 1;
-  }
   .announcement {
-    grid-template-columns: 1fr auto;
-    gap: 30px;
+    grid-template-columns: 1fr;
+    gap: 24px;
+    padding: 36px 30px;
   }
-  .announcement > a {
+  .datesContainer {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 14px;
+    width: 100%;
+  }
+  .meetingDateCard {
+    max-width: 100%;
+    min-width: 0;
+  }
+  .announcement > a,
+  .announcementBtn {
     grid-column: 1 / -1;
     text-align: center;
+    width: 100%;
+    padding: 14px 20px;
   }
   .contactSection {
     grid-template-columns: 1fr;
@@ -1980,12 +2049,42 @@ footer p {
   }
   .announcement {
     grid-template-columns: 1fr;
-    margin: 0 4vw 60px;
-    padding: 36px 5vw;
+    margin: 0 4vw 50px;
+    padding: 24px 18px;
+    gap: 18px;
+    border-radius: 10px;
   }
-  .date {
-    border-left: 0;
-    padding-left: 0;
+  .announcement h2 {
+    font-size: 24px;
+    line-height: 1.2;
+    margin-bottom: 8px;
+  }
+  .announcement p {
+    font-size: 13.5px;
+    line-height: 1.5;
+  }
+  .datesContainer {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    width: 100%;
+  }
+  .meetingDateCard {
+    padding: 12px 14px;
+    max-width: 100%;
+    min-width: 0;
+  }
+  .meetingRange {
+    font-size: 20px;
+  }
+  .meetingMonth {
+    font-size: 11px;
+  }
+  .announcement > a,
+  .announcementBtn {
+    padding: 12px 16px;
+    font-size: 12.5px;
+    border-radius: 6px;
+    width: 100%;
   }
   .contactSection {
     margin: 0 4vw 60px;

@@ -589,25 +589,29 @@
 
     <!-- 3. Announcement Banner (Dynamic from CMS) -->
     <section class="announcement" id="duyurular">
-      <div>
+      <div class="announcementContent">
         <p class="eyebrow">
           <span></span> {{ announcementData.eyebrow }}
         </p>
         <h2>{{ announcementData.title }}</h2>
         <p>{{ announcementData.description }}</p>
       </div>
-      <div class="datesContainer">
+      <div class="datesContainer" v-if="announcementData.meetings && announcementData.meetings.length">
         <div
-          v-for="meeting in announcementData.meetings"
-          :key="meeting.title"
-          class="date"
+          v-for="(meeting, mIdx) in announcementData.meetings"
+          :key="mIdx"
+          class="meetingDateCard"
         >
-          <small style="display:block; font-size: 0.75rem; opacity: 0.8; margin-bottom: 2px;">{{ meeting.title }}</small>
-          <b>{{ meeting.dateRange }}</b>
-          <span>{{ meeting.monthYear }}</span>
+          <div class="meetingBadge">{{ meeting.title }}</div>
+          <div class="meetingDateBody">
+            <b class="meetingRange">{{ meeting.dateRange }}</b>
+            <span v-if="meeting.monthYear" class="meetingMonth">{{ meeting.monthYear }}</span>
+          </div>
         </div>
       </div>
-      <a :href="announcementData.buttonHref">{{ announcementData.buttonText }}</a>
+      <a :href="announcementData.buttonHref" class="announcementBtn">
+        {{ announcementData.buttonText }}
+      </a>
     </section>
 
     <!-- 4. Contact Form Section -->
