@@ -45,17 +45,71 @@ export default defineEventHandler(async (event) => {
 
       const rangeHeader = reqHeaders.range
 
-      const command = new GetObjectCommand({
-        Bucket: config.r2BucketName,
-        Key: key,
-        Range: rangeHeader
-      })
+      // Helper function to try fetching an S3 key
+      const tryFetchObject = async (candidateKey: string) => {
+        const command = new GetObjectCommand({
+          Bucket: config.r2BucketName,
+          Key: candidateKey,
+          Range: rangeHeader
+        })
+        return await s3Client.send(command)
+      }
 
-      const response = await s3Client.send(command)
+      // Generate candidate keys to handle Unicode normalization, alternate extensions, etc.
+      const candidateKeys = [
+        key,
+        decodeURIComponent(key),
+        key.normalize('NFC'),
+        key.normalize('NFD')
+      ]
 
-      if (response.Body) {
-        setHeader(event, 'Content-Type', response.ContentType || contentType)
+      // If requested file is a .pdf, also try alternative image extensions in case the handout was an image
+      if (ext === 'pdf') {
+        const baseKey = key.replace(/\.pdf$/i, '')
+        candidateKeys.push(
+          `${baseKey}.png`,
+          `${baseKey}.jpg`,
+          `${baseKey}.jpeg`,
+          `${baseKey}.webp`
+        )
+      } else if (['png', 'jpg', 'jpeg', 'webp'].includes(ext || '')) {
+        const baseKey = key.replace(/\.(png|jpg|jpeg|webp)$/i, '')
+        candidateKeys.push(`${baseKey}.pdf`)
+      }
+
+      const uniqueKeys = Array.from(new Set(candidateKeys))
+
+      let response: any = null
+      let matchedKey = key
+
+      for (const candKey of uniqueKeys) {
+        try {
+          const res = await tryFetchObject(candKey)
+          if (res?.Body) {
+            response = res
+            matchedKey = candKey
+            break
+          }
+        } catch {
+          // Continue to next candidate
+        }
+      }
+
+      if (response && response.Body) {
+        const effectiveFileName = matchedKey.split('/').pop() || fileName
+        const effectiveExt = effectiveFileName.split('.').pop()?.toLowerCase()
+        let effectiveContentType = contentType
+
+        if (effectiveExt === 'pdf') effectiveContentType = 'application/pdf'
+        else if (effectiveExt === 'png') effectiveContentType = 'image/png'
+        else if (effectiveExt === 'jpg' || effectiveExt === 'jpeg') effectiveContentType = 'image/jpeg'
+        else if (effectiveExt === 'webp') effectiveContentType = 'image/webp'
+        else if (effectiveExt === 'mp3') effectiveContentType = 'audio/mpeg'
+        else if (effectiveExt === 'm4a') effectiveContentType = 'audio/mp4'
+
+        setHeader(event, 'Content-Type', response.ContentType || effectiveContentType)
         setHeader(event, 'Accept-Ranges', 'bytes')
+        setHeader(event, 'X-Content-Type-Options', 'nosniff')
 
         if (response.ContentRange) {
           setHeader(event, 'Content-Range', response.ContentRange)
@@ -65,9 +119,9 @@ export default defineEventHandler(async (event) => {
         if (response.ContentLength) {
           setHeader(event, 'Content-Length', response.ContentLength)
         }
-        
+
         const dispositionType = downloadMode ? 'attachment' : 'inline'
-        setHeader(event, 'Content-Disposition', `${dispositionType}; filename="${encodeURIComponent(fileName)}"`)
+        setHeader(event, 'Content-Disposition', `${dispositionType}; filename="${encodeURIComponent(effectiveFileName)}"`)
 
         return sendStream(event, response.Body as Readable)
       }
@@ -76,9 +130,16 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  // Fallback: Direct public R2 URL redirect
-  const encodedKey = key.split('/').map(part => encodeURIComponent(part)).join('/')
-  const fallbackUrl = `${config.r2PublicUrl.replace(/\/$/, '')}/${encodedKey}`
+  // Fallback: If public R2 URL is explicitly configured as absolute URL, redirect there
+  if (config.r2PublicUrl && typeof config.r2PublicUrl === 'string' && config.r2PublicUrl.startsWith('http')) {
+    const encodedKey = key.split('/').map(part => encodeURIComponent(part)).join('/')
+    const fallbackUrl = `${config.r2PublicUrl.replace(/\/$/, '')}/${encodedKey}`
+    return sendRedirect(event, fallbackUrl)
+  }
 
-  return sendRedirect(event, fallbackUrl)
+  // Return clean 404 (NEVER relative-redirect to a nonexistent route which breaks iframes)
+  throw createError({
+    statusCode: 404,
+    statusMessage: 'Dosya Cloudflare R2 üzerinde bulunamadı.'
+  })
 })

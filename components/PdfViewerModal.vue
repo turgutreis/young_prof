@@ -31,7 +31,21 @@
             prepend-icon="mdi-headphones"
             @click="$emit('play-audio', file)"
           >
-            Audio Anhören
+            Audio
+          </v-btn>
+
+          <!-- Open in new tab -->
+          <v-btn
+            v-if="file?.previewUrl"
+            variant="tonal"
+            size="small"
+            rounded="pill"
+            class="font-weight-medium d-none d-sm-inline-flex"
+            prepend-icon="mdi-open-in-new"
+            :href="file?.previewUrl"
+            target="_blank"
+          >
+            Yeni Sekme
           </v-btn>
 
           <v-btn
@@ -44,7 +58,7 @@
             :href="file?.downloadUrl"
             target="_blank"
           >
-            Herunterladen
+            İndir
           </v-btn>
 
           <v-btn
@@ -57,33 +71,67 @@
         </div>
       </v-card-title>
 
-      <!-- PDF Viewer Body -->
-      <v-card-text class="flex-grow-1 pa-0 position-relative bg-grey-darken-4">
-        <div v-if="loading" class="d-flex flex-column align-center justify-center h-100 py-16">
-          <v-progress-circular indeterminate color="primary" size="64" width="6" class="mb-4"></v-progress-circular>
-          <span class="text-body-1 font-weight-medium text-medium-emphasis">PDF wird geladen...</span>
+      <!-- PDF / Image Viewer Body -->
+      <v-card-text class="flex-grow-1 pa-0 position-relative bg-grey-darken-4 d-flex flex-column">
+        <div v-if="loading" class="d-flex flex-column align-center justify-center flex-grow-1 py-16">
+          <v-progress-circular indeterminate color="primary" size="56" width="5" class="mb-4"></v-progress-circular>
+          <span class="text-body-1 font-weight-medium text-medium-emphasis">Dosya yükleniyor...</span>
         </div>
 
+        <!-- Direct Image View if the file is an image -->
+        <div
+          v-if="isImage"
+          class="d-flex align-center justify-center flex-grow-1 pa-4 overflow-auto"
+          style="min-height: 500px;"
+        >
+          <img
+            :src="file?.previewUrl"
+            :alt="file?.name"
+            class="rounded-lg elevation-4"
+            style="max-width: 100%; max-height: 80vh; object-fit: contain;"
+            @load="loading = false"
+            @error="loading = false; loadError = true"
+          />
+        </div>
+
+        <!-- PDF Iframe -->
         <iframe
-          v-if="file?.previewUrl"
+          v-else-if="file?.previewUrl && !loadError"
           :src="file.previewUrl"
-          class="w-100 h-100 border-0"
-          style="min-height: 620px;"
+          class="w-100 flex-grow-1 border-0"
+          style="min-height: 600px;"
           @load="loading = false"
+          @error="loading = false; loadError = true"
         ></iframe>
 
-        <div v-else class="d-flex flex-column align-center justify-center h-100 pa-8 text-center">
-          <v-icon icon="mdi-alert-circle-outline" color="warning" size="64" class="mb-2"></v-icon>
-          <p class="text-body-1 font-weight-medium mb-4">Vorschau für diese Datei konnte nicht direkt geladen werden.</p>
-          <v-btn
-            color="primary"
-            rounded="pill"
-            class="font-weight-bold"
-            prepend-icon="mdi-download"
-            :href="file?.downloadUrl"
-          >
-            PDF direkt herunterladen
-          </v-btn>
+        <div v-else class="d-flex flex-column align-center justify-center flex-grow-1 pa-8 text-center">
+          <v-icon icon="mdi-alert-circle-outline" color="warning" size="64" class="mb-3"></v-icon>
+          <p class="text-h6 font-weight-bold mb-2">Vorschau konnte nicht geladen werden</p>
+          <p class="text-body-2 text-medium-emphasis mb-4" style="max-width: 480px;">
+            Tarayıcınız bu dosyayı yerleşik görüntüleyicide açamıyor olabilir. Dosyayı doğrudan indirebilir veya yeni sekmede açabilirsiniz.
+          </p>
+          <div class="d-flex gap-2">
+            <v-btn
+              color="primary"
+              rounded="pill"
+              class="font-weight-bold"
+              prepend-icon="mdi-download"
+              :href="file?.downloadUrl"
+            >
+              Dosyayı İndir
+            </v-btn>
+            <v-btn
+              v-if="file?.previewUrl"
+              variant="outlined"
+              rounded="pill"
+              class="font-weight-medium"
+              prepend-icon="mdi-open-in-new"
+              :href="file?.previewUrl"
+              target="_blank"
+            >
+              Yeni Sekmede Aç
+            </v-btn>
+          </div>
         </div>
       </v-card-text>
     </v-card>
@@ -91,7 +139,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, computed, watch, onBeforeUnmount } from 'vue'
 import type { SohbetFile } from '~/server/api/sohbets/index.get'
 
 const props = defineProps<{
@@ -105,9 +153,34 @@ defineEmits<{
 }>()
 
 const loading = ref(true)
+const loadError = ref(false)
+let timeoutId: any = null
+
+const isImage = computed(() => {
+  if (!props.file) return false
+  const url = (props.file.previewUrl || props.file.key || props.file.name || '').toLowerCase()
+  return (
+    url.endsWith('.png') ||
+    url.endsWith('.jpg') ||
+    url.endsWith('.jpeg') ||
+    url.endsWith('.webp') ||
+    url.endsWith('.svg') ||
+    (props.file as any).fileType === 'image'
+  )
+})
 
 watch(() => props.file, () => {
   loading.value = true
+  loadError.value = false
+  if (timeoutId) clearTimeout(timeoutId)
+  // Stop spinner after 8 seconds if browser doesn't dispatch iframe load event
+  timeoutId = setTimeout(() => {
+    loading.value = false
+  }, 8000)
+})
+
+onBeforeUnmount(() => {
+  if (timeoutId) clearTimeout(timeoutId)
 })
 </script>
 
