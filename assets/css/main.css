@@ -801,32 +801,46 @@ nav a:hover:after {
   padding: 8px 18px 14px;
 }
 
-.pdfList a,
+.pdfList > a,
 .pdfListItem {
-  display: grid;
-  grid-template-columns: 46px 1fr auto auto;
+  display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 0;
+  padding: 10px 0;
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
   cursor: pointer;
   transition: color 0.15s;
 }
 
-.pdfList a:last-child,
+.pdfList > a:last-child,
 .pdfListItem:last-child {
   border-bottom: 0;
 }
 
-.pdfList a:hover b,
+.pdfList > a:hover b,
 .pdfListItem:hover b {
   color: var(--coral);
 }
 
-.pdfList a > b,
+.pdfList > a > b,
 .pdfListItem > b {
+  flex: 1;
+  min-width: 0;
   font-size: 13px;
   font-weight: 700;
+}
+
+.pdfItemActions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.pdfItemActions .v-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
 
 .pdfBadge {

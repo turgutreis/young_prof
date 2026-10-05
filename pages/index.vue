@@ -156,24 +156,26 @@
                         >
                           <span class="pdfBadge">PDF</span>
                           <b>{{ file.title }}</b>
-                          <v-btn
-                            icon="mdi-eye-outline"
-                            variant="text"
-                            size="x-small"
-                            color="primary"
-                            title="Önizle"
-                            @click.stop="openPdf(file)"
-                          ></v-btn>
-                          <v-btn
-                            icon="mdi-download"
-                            variant="text"
-                            size="x-small"
-                            color="grey-darken-1"
-                            :href="file.href"
-                            target="_blank"
-                            title="İndir"
-                            @click.stop
-                          ></v-btn>
+                          <div class="pdfItemActions" @click.stop>
+                            <v-btn
+                              icon="mdi-eye-outline"
+                              variant="text"
+                              size="x-small"
+                              color="primary"
+                              title="Önizle"
+                              @click.stop="openPdf(file)"
+                            ></v-btn>
+                            <v-btn
+                              icon="mdi-download"
+                              variant="text"
+                              size="x-small"
+                              color="grey-darken-1"
+                              :href="getDownloadHref(file.href)"
+                              target="_blank"
+                              title="İndir"
+                              @click.stop
+                            ></v-btn>
+                          </div>
                         </div>
                       </div>
                       <div v-else class="filePlaceholder">
@@ -904,5 +906,11 @@ function openPdf(file: any) {
 
 function playAudio(file: any) {
   activeTrack.value = file
+}
+
+function getDownloadHref(href: string) {
+  if (!href) return '#'
+  if (href.includes('download=true')) return href
+  return href.includes('?') ? `${href}&download=true` : `${href}?download=true`
 }
 </script>
