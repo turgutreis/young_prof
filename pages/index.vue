@@ -700,7 +700,7 @@
         <img src="/young-professionals-logo.png" alt="Young Professionals" />
       </a>
       <p>Gençler için, gençlerle birlikte.</p>
-      <span>© 2026 · v2.3.0</span>
+      <span>© 2026 · v{{ appVersion }}</span>
     </footer>
 
     <!-- Global Persistent Audio Player Bar -->
@@ -726,6 +726,9 @@ import type { SiteContent } from '~/types'
 import { getInitialSiteContent } from '~/data/initial-content'
 import { curriculumSteps } from '~/data/curriculum'
 import { sortCurriculumTopics } from '~/utils/r2'
+
+const runtimeConfig = useRuntimeConfig()
+const appVersion = computed(() => runtimeConfig.public.appVersion || '2.3.1')
 
 useSeoMeta({
   title: 'Young Professionals EU · Gençlik Bilgi ve Tecrübe Paylaşım Platformu',

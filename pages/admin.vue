@@ -7,7 +7,7 @@
           <img src="/young-professionals-logo.png" alt="YP Logo" class="loginLogo" />
           <div class="loginTitleRow">
             <h2>YP Yönetici Paneli</h2>
-            <span class="versionBadge">v2.3.0</span>
+            <span class="versionBadge">v{{ appVersion }}</span>
           </div>
           <p>İçerikleri ve Cloudflare R2 dosyalarını yönetmek için şifrenizi girin.</p>
         </div>
@@ -50,7 +50,7 @@
             <img src="/young-professionals-logo.png" alt="Logo" class="miniLogo" />
             <b>Young Professionals Admin</b>
           </NuxtLink>
-          <span class="versionBadge">v2.3.0</span>
+          <span class="versionBadge">v{{ appVersion }}</span>
           <span class="statusBadge">☁ Cloudflare R2 Aktif</span>
         </div>
 
@@ -671,6 +671,9 @@ useSeoMeta({
   title: 'Yönetici Paneli · Young Professionals EU',
   robots: 'noindex, nofollow'
 })
+
+const runtimeConfig = useRuntimeConfig()
+const appVersion = computed(() => runtimeConfig.public.appVersion || '2.3.1')
 
 const tabs = [
   { id: 'curriculum', title: 'Müfredat & Dosyalar', icon: '🎓' },
