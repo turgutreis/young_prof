@@ -81,7 +81,7 @@
         <div class="batchSpinner"></div>
         <div>
           <b>Dosyalar Cloudflare R2'ye yükleniyor... ({{ batchProgress.current }} / {{ batchProgress.total }})</b>
-          <p>{{ batchProgress.currentFileName }}</p>
+          <p>{{ batchProgress.currentFileName }} <span v-if="batchProgress.subStatus" style="opacity: 0.85; font-size: 0.9em;">· {{ batchProgress.subStatus }}</span></p>
         </div>
       </div>
 
@@ -705,7 +705,8 @@ const isUploadingBatch = ref(false)
 const batchProgress = ref({
   current: 0,
   total: 0,
-  currentFileName: ''
+  currentFileName: '',
+  subStatus: ''
 })
 
 const currentStepTopics = computed<CurriculumTopic[]>({
@@ -946,6 +947,69 @@ async function handleFilesSelect(e: Event) {
   target.value = ''
 }
 
+async function uploadFileToR2Client(
+  file: File,
+  folder: string,
+  onProgress?: (status: string) => void
+): Promise<{ success: boolean; key: string; href: string }> {
+  const CHUNK_SIZE = 3 * 1024 * 1024 // 3 MB per chunk (well below Vercel's 4.5 MB request limit)
+
+  // 1. Direct upload for files <= 3.5 MB
+  if (file.size <= 3.5 * 1024 * 1024) {
+    if (onProgress) onProgress('Yükleniyor...')
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('folder', folder)
+
+    return await $fetch<{ success: boolean; key: string; href: string }>('/api/admin/upload', {
+      method: 'POST',
+      headers: { 'x-admin-password': passwordInput.value.trim() },
+      body: formData
+    })
+  }
+
+  // 2. Chunked upload for larger files (> 3.5 MB)
+  const totalChunks = Math.ceil(file.size / CHUNK_SIZE)
+  const uploadId = 'up-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8)
+
+  for (let i = 0; i < totalChunks; i++) {
+    const start = i * CHUNK_SIZE
+    const end = Math.min(start + CHUNK_SIZE, file.size)
+    const chunkBlob = file.slice(start, end)
+    const percent = Math.round(((i + 1) / totalChunks) * 100)
+
+    if (onProgress) {
+      onProgress(`Parça ${i + 1}/${totalChunks} (%${percent})`)
+    }
+
+    const chunkFormData = new FormData()
+    chunkFormData.append('uploadId', uploadId)
+    chunkFormData.append('chunkIndex', String(i))
+    chunkFormData.append('chunk', chunkBlob, `chunk-${i}`)
+
+    await $fetch('/api/admin/upload-chunk', {
+      method: 'POST',
+      headers: { 'x-admin-password': passwordInput.value.trim() },
+      body: chunkFormData
+    })
+  }
+
+  // 3. Complete and assemble chunks on server
+  if (onProgress) onProgress('Dosya birleştiriliyor...')
+
+  return await $fetch<{ success: boolean; key: string; href: string }>('/api/admin/upload-complete', {
+    method: 'POST',
+    headers: { 'x-admin-password': passwordInput.value.trim() },
+    body: {
+      uploadId,
+      totalChunks,
+      folder,
+      filename: file.name,
+      contentType: file.type || 'application/octet-stream'
+    }
+  })
+}
+
 async function uploadSingleOrGroupFiles(files: File[], defaultTitle: string) {
   const nextNo = String(currentStepTopics.value.length + 1).padStart(2, '0')
   const slug = `${nextNo}-${defaultTitle.toLowerCase().replace(/[^a-z0-9]/g, '-')}`
@@ -954,7 +1018,7 @@ async function uploadSingleOrGroupFiles(files: File[], defaultTitle: string) {
 
 async function uploadFilesToTopic(files: File[], no: string, title: string, slug: string) {
   isUploadingBatch.value = true
-  batchProgress.value = { current: 0, total: files.length, currentFileName: '' }
+  batchProgress.value = { current: 0, total: files.length, currentFileName: '', subStatus: '' }
 
   // Check if topic already exists in currentStepTopics
   let existingTopic = currentStepTopics.value.find(t => t.no === no)
@@ -971,19 +1035,14 @@ async function uploadFilesToTopic(files: File[], no: string, title: string, slug
     const file = files[i]
     batchProgress.value.current = i + 1
     batchProgress.value.currentFileName = file.name
+    batchProgress.value.subStatus = ''
 
     const targetFolder = `files/${slug}`
     const fileTitle = formatSmartFileTitle(file.name)
 
-    const formData = new FormData()
-    formData.append('file', file)
-    formData.append('folder', targetFolder)
-
     try {
-      const res = await $fetch<{ success: boolean; key: string; href: string }>('/api/admin/upload', {
-        method: 'POST',
-        headers: { 'x-admin-password': passwordInput.value.trim() },
-        body: formData
+      const res = await uploadFileToR2Client(file, targetFolder, (status) => {
+        batchProgress.value.subStatus = status
       })
 
       if (res.success) {
@@ -998,6 +1057,8 @@ async function uploadFilesToTopic(files: File[], no: string, title: string, slug
       }
     } catch (err: any) {
       console.error('Failed to upload file:', file.name, err)
+      feedbackType.value = 'error'
+      feedbackMsg.value = `"${file.name}" yüklenirken hata: ${err.data?.statusMessage || err.message}`
     }
   }
 
@@ -1056,22 +1117,17 @@ async function handleTopicSpecificUpload(e: Event, topic: CurriculumTopic) {
   const slug = `${topic.no}-${topic.title.toLowerCase().replace(/[^a-z0-9]/g, '-')}`
 
   isUploadingBatch.value = true
-  batchProgress.value = { current: 0, total: files.length, currentFileName: '' }
+  batchProgress.value = { current: 0, total: files.length, currentFileName: '', subStatus: '' }
 
   for (let i = 0; i < files.length; i++) {
     const file = files[i]
     batchProgress.value.current = i + 1
     batchProgress.value.currentFileName = file.name
-
-    const formData = new FormData()
-    formData.append('file', file)
-    formData.append('folder', `files/${slug}`)
+    batchProgress.value.subStatus = ''
 
     try {
-      const res = await $fetch<{ success: boolean; key: string; href: string }>('/api/admin/upload', {
-        method: 'POST',
-        headers: { 'x-admin-password': passwordInput.value.trim() },
-        body: formData
+      const res = await uploadFileToR2Client(file, `files/${slug}`, (status) => {
+        batchProgress.value.subStatus = status
       })
 
       if (res.success) {
@@ -1082,14 +1138,18 @@ async function handleTopicSpecificUpload(e: Event, topic: CurriculumTopic) {
       }
     } catch (err: any) {
       console.error('Upload failed:', err)
+      feedbackType.value = 'error'
+      feedbackMsg.value = `"${file.name}" yüklenirken hata: ${err.data?.statusMessage || err.message}`
     }
   }
 
   isUploadingBatch.value = false
   target.value = ''
-  feedbackType.value = 'success'
-  feedbackMsg.value = 'Dosyalar başarıyla eklendi!'
-  setTimeout(() => { feedbackMsg.value = '' }, 4000)
+  if (!feedbackMsg.value) {
+    feedbackType.value = 'success'
+    feedbackMsg.value = 'Dosyalar başarıyla eklendi!'
+    setTimeout(() => { feedbackMsg.value = '' }, 4000)
+  }
 }
 
 // ==========================================
@@ -1310,16 +1370,9 @@ async function handleBookCoverUpload(e: Event, bIdx: number) {
   if (!target.files || !target.files[0]) return
 
   const file = target.files[0]
-  const formData = new FormData()
-  formData.append('file', file)
-  formData.append('folder', 'books/2026-27')
 
   try {
-    const res = await $fetch<{ success: boolean; href: string }>('/api/admin/upload', {
-      method: 'POST',
-      headers: { 'x-admin-password': passwordInput.value.trim() },
-      body: formData
-    })
+    const res = await uploadFileToR2Client(file, 'books/2026-27')
     if (res.success) {
       content.value.readingPlanBooks[bIdx].cover = res.href
       feedbackType.value = 'success'
@@ -1340,16 +1393,9 @@ async function handlePlatformBannerUpload(e: Event, plat: string) {
   if (!target.files || !target.files[0]) return
 
   const file = target.files[0]
-  const formData = new FormData()
-  formData.append('file', file)
-  formData.append('folder', 'flyers')
 
   try {
-    const res = await $fetch<{ success: boolean; href: string }>('/api/admin/upload', {
-      method: 'POST',
-      headers: { 'x-admin-password': passwordInput.value.trim() },
-      body: formData
-    })
+    const res = await uploadFileToR2Client(file, 'flyers')
     if (res.success) {
       if (!content.value.activityPlatformDetails[plat]) {
         content.value.activityPlatformDetails[plat] = { name: plat, bannerImage: res.href }

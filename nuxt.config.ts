@@ -24,7 +24,7 @@ export default defineNuxtConfig({
     adminPassword: process.env.ADMIN_PASSWORD || 'young2026admin',
     public: {
       appName: 'Young Professionals EU',
-      appVersion: '2.3.1'
+      appVersion: '2.3.2'
     }
   },
   app: {
