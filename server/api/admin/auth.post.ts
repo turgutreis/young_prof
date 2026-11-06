@@ -1,3 +1,5 @@
+import { setAdminSessionCookie } from '~/server/utils/auth'
+
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)
   const config = useRuntimeConfig()
@@ -12,13 +14,8 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Set session cookie
-  setCookie(event, 'admin_session', enteredPassword, {
-    httpOnly: false, // Accessible from client script for auth header fallback
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: 60 * 60 * 24 * 7 // 7 days
-  })
+  // Set secure, cryptographically signed HttpOnly session cookie
+  setAdminSessionCookie(event, config)
 
   return {
     success: true,

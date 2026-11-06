@@ -755,10 +755,22 @@ function autoSortCurrentStep() {
 
 // Lifecycle
 onMounted(async () => {
-  const storedPass = localStorage.getItem('yp_admin_pass')
-  if (storedPass) {
-    passwordInput.value = storedPass
-    await handleLogin()
+  // Purge any legacy plaintext password from browser storage
+  try {
+    localStorage.removeItem('yp_admin_pass')
+  } catch {}
+
+  // Verify active session via HttpOnly cookie
+  try {
+    const res = await $fetch<{ authenticated: boolean }>('/api/admin/auth', {
+      method: 'GET'
+    })
+    if (res?.authenticated) {
+      isAuthenticated.value = true
+      await loadContent()
+    }
+  } catch {
+    isAuthenticated.value = false
   }
 })
 
@@ -775,21 +787,27 @@ async function handleLogin() {
 
     if (res.success) {
       isAuthenticated.value = true
-      localStorage.setItem('yp_admin_pass', passwordInput.value.trim())
+      passwordInput.value = '' // Immediately clear plaintext password from memory
+      try {
+        localStorage.removeItem('yp_admin_pass')
+      } catch {}
       await loadContent()
     }
   } catch (err: any) {
     loginError.value = err.data?.statusMessage || 'Geçersiz şifre. Lütfen tekrar deneyin.'
-    localStorage.removeItem('yp_admin_pass')
+    passwordInput.value = ''
   } finally {
     isLoggingIn.value = false
   }
 }
 
-function handleLogout() {
+async function handleLogout() {
   isAuthenticated.value = false
-  localStorage.removeItem('yp_admin_pass')
   passwordInput.value = ''
+  try {
+    localStorage.removeItem('yp_admin_pass')
+    await $fetch('/api/admin/logout', { method: 'POST' })
+  } catch {}
 }
 
 async function loadContent() {
@@ -813,9 +831,6 @@ async function saveChanges() {
 
     const res = await $fetch<{ success: boolean; message: string }>('/api/admin/content', {
       method: 'POST',
-      headers: {
-        'x-admin-password': passwordInput.value.trim()
-      },
       body: content.value
     })
 
@@ -963,7 +978,6 @@ async function uploadFileToR2Client(
 
     return await $fetch<{ success: boolean; key: string; href: string }>('/api/admin/upload', {
       method: 'POST',
-      headers: { 'x-admin-password': passwordInput.value.trim() },
       body: formData
     })
   }
@@ -989,7 +1003,6 @@ async function uploadFileToR2Client(
 
     await $fetch('/api/admin/upload-chunk', {
       method: 'POST',
-      headers: { 'x-admin-password': passwordInput.value.trim() },
       body: chunkFormData
     })
   }
@@ -999,7 +1012,6 @@ async function uploadFileToR2Client(
 
   return await $fetch<{ success: boolean; key: string; href: string }>('/api/admin/upload-complete', {
     method: 'POST',
-    headers: { 'x-admin-password': passwordInput.value.trim() },
     body: {
       uploadId,
       totalChunks,
@@ -1337,8 +1349,7 @@ async function syncFromR2Bucket() {
 
   try {
     const res = await $fetch<{ success: boolean; totalFiles: number; topicsCount: number; topics: CurriculumTopic[] }>('/api/admin/sync-r2', {
-      method: 'POST',
-      headers: { 'x-admin-password': passwordInput.value.trim() }
+      method: 'POST'
     })
 
     if (res.success) {

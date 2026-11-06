@@ -1,19 +1,11 @@
 import { GetObjectCommand, DeleteObjectsCommand } from '@aws-sdk/client-s3'
 import { getS3Client, uploadFileToR2 } from '~/server/utils/r2'
+import { verifyAdminSession } from '~/server/utils/auth'
 
 export default defineEventHandler(async (event) => {
-  const config = useRuntimeConfig()
-  const reqHeaders = getHeaders(event)
-  const cookiePassword = getCookie(event, 'admin_session')
-  const authHeader = reqHeaders['x-admin-password']
-  const expectedPassword = config.adminPassword?.trim()
+  verifyAdminSession(event)
 
-  if ((authHeader !== expectedPassword) && (cookiePassword !== expectedPassword)) {
-    throw createError({
-      statusCode: 401,
-      statusMessage: 'Yetkisiz erişim. Lütfen giriş yapın.'
-    })
-  }
+  const config = useRuntimeConfig()
 
   const s3Client = getS3Client(config)
   if (!s3Client) {

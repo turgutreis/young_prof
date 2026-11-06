@@ -1,20 +1,11 @@
 import { saveSiteContentToR2 } from '~/server/utils/r2'
+import { verifyAdminSession } from '~/server/utils/auth'
 import type { SiteContent } from '~/types'
 
 export default defineEventHandler(async (event) => {
+  verifyAdminSession(event)
+
   const config = useRuntimeConfig()
-  const reqHeaders = getHeaders(event)
-  const cookiePassword = getCookie(event, 'admin_session')
-  const authHeader = reqHeaders['x-admin-password']
-
-  const expectedPassword = config.adminPassword?.trim()
-
-  if ((authHeader !== expectedPassword) && (cookiePassword !== expectedPassword)) {
-    throw createError({
-      statusCode: 401,
-      statusMessage: 'Yetkisiz erişim. Lütfen giriş yapın.'
-    })
-  }
 
   const body = await readBody<SiteContent>(event)
 
