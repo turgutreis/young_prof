@@ -21,10 +21,11 @@ export default defineNuxtConfig({
     r2AccessKeyId: process.env.R2_ACCESS_KEY_ID || '',
     r2SecretAccessKey: process.env.R2_SECRET_ACCESS_KEY || '',
     r2PublicUrl: process.env.R2_PUBLIC_URL || '',
-    adminPassword: process.env.ADMIN_PASSWORD || 'young2026admin',
+    supabaseUrl: process.env.SUPABASE_URL || 'https://kesxqpfnngzofzkpmlix.supabase.co',
+    supabaseKey: process.env.SUPABASE_KEY || 'sb_publishable_uGQJxk4gtX_Lw35UZXSpsA_qldd9t38',
     public: {
       appName: 'Young Professionals EU',
-      appVersion: '2.3.3'
+      appVersion: '2.3.4'
     }
   },
   app: {

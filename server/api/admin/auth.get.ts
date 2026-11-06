@@ -1,9 +1,9 @@
-import { isAdminSessionValid, clearAdminSessionCookie } from '~/server/utils/auth'
+import { getAdminSession, clearAdminSessionCookie } from '~/server/utils/auth'
 
 export default defineEventHandler(async (event) => {
-  const isValid = isAdminSessionValid(event)
+  const session = getAdminSession(event)
 
-  if (!isValid) {
+  if (!session) {
     clearAdminSessionCookie(event)
     return {
       authenticated: false
@@ -11,6 +11,10 @@ export default defineEventHandler(async (event) => {
   }
 
   return {
-    authenticated: true
+    authenticated: true,
+    user: {
+      userId: session.userId,
+      email: session.email
+    }
   }
 })

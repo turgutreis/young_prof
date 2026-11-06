@@ -4,23 +4,27 @@ import crypto from 'node:crypto'
 const SESSION_COOKIE_NAME = 'admin_session'
 const SESSION_DURATION_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
 
-interface SessionPayload {
+export interface SessionPayload {
   role: 'admin'
+  userId: string
+  email: string
   iat: number
   exp: number
 }
 
 function getSigningSecret(config: any): string {
-  const adminPassword = config.adminPassword || 'young2026admin'
+  const supabaseKey = config.supabaseKey || process.env.SUPABASE_KEY || 'sb_publishable_uGQJxk4gtX_Lw35UZXSpsA_qldd9t38'
   const sessionSecret = process.env.ADMIN_SESSION_SECRET || 'yp-secure-salt-2026'
-  return crypto.createHash('sha256').update(`${adminPassword}:${sessionSecret}`).digest('hex')
+  return crypto.createHash('sha256').update(`${supabaseKey}:${sessionSecret}`).digest('hex')
 }
 
-export function createAdminSessionToken(config: any): string {
+export function createAdminSessionToken(user: { id: string; email?: string | null }, config: any): string {
   const secret = getSigningSecret(config)
   const now = Date.now()
   const payload: SessionPayload = {
     role: 'admin',
+    userId: user.id,
+    email: user.email || '',
     iat: now,
     exp: now + SESSION_DURATION_MS
   }
@@ -31,13 +35,13 @@ export function createAdminSessionToken(config: any): string {
   return `${payloadB64}.${signature}`
 }
 
-export function verifySessionToken(token: string, config: any): boolean {
-  if (!token || typeof token !== 'string') return false
+export function verifySessionToken(token: string, config: any): SessionPayload | null {
+  if (!token || typeof token !== 'string') return null
   const parts = token.split('.')
-  if (parts.length !== 2) return false
+  if (parts.length !== 2) return null
 
   const [payloadB64, signature] = parts
-  if (!payloadB64 || !signature || !/^[0-9a-f]{64}$/i.test(signature)) return false
+  if (!payloadB64 || !signature || !/^[0-9a-f]{64}$/i.test(signature)) return null
 
   try {
     const secret = getSigningSecret(config)
@@ -47,22 +51,26 @@ export function verifySessionToken(token: string, config: any): boolean {
     const expBuf = Buffer.from(expectedSignature, 'hex')
 
     if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) {
-      return false
+      return null
     }
 
     const payload: SessionPayload = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf-8'))
-    if (payload.role !== 'admin' || typeof payload.exp !== 'number') {
-      return false
+    if (payload.role !== 'admin' || typeof payload.exp !== 'number' || !payload.userId) {
+      return null
     }
 
-    return payload.exp > Date.now()
+    if (payload.exp <= Date.now()) {
+      return null
+    }
+
+    return payload
   } catch {
-    return false
+    return null
   }
 }
 
-export function setAdminSessionCookie(event: H3Event, config: any): void {
-  const token = createAdminSessionToken(config)
+export function setAdminSessionCookie(event: H3Event, user: { id: string; email?: string | null }, config: any): void {
+  const token = createAdminSessionToken(user, config)
   setCookie(event, SESSION_COOKIE_NAME, token, {
     httpOnly: true, // Inaccessible to JavaScript (XSS-safe)
     secure: process.env.NODE_ENV === 'production',
@@ -78,18 +86,24 @@ export function clearAdminSessionCookie(event: H3Event): void {
   })
 }
 
-export function isAdminSessionValid(event: H3Event): boolean {
+export function getAdminSession(event: H3Event): SessionPayload | null {
   const config = useRuntimeConfig()
   const token = getCookie(event, SESSION_COOKIE_NAME)
-  if (!token) return false
+  if (!token) return null
   return verifySessionToken(token, config)
 }
 
-export function verifyAdminSession(event: H3Event): void {
-  if (!isAdminSessionValid(event)) {
+export function isAdminSessionValid(event: H3Event): boolean {
+  return getAdminSession(event) !== null
+}
+
+export function verifyAdminSession(event: H3Event): SessionPayload {
+  const session = getAdminSession(event)
+  if (!session) {
     throw createError({
       statusCode: 401,
       statusMessage: 'Yetkisiz erişim. Lütfen giriş yapın.'
     })
   }
+  return session
 }

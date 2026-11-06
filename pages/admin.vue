@@ -9,12 +9,24 @@
             <h2>YP Yönetici Paneli</h2>
             <span class="versionBadge">v{{ appVersion }}</span>
           </div>
-          <p>İçerikleri ve Cloudflare R2 dosyalarını yönetmek için şifrenizi girin.</p>
+          <p>İçerikleri ve Cloudflare R2 dosyalarını yönetmek için Supabase yönetici hesabınızla giriş yapın.</p>
         </div>
 
         <form @submit.prevent="handleLogin" class="loginForm">
           <div class="formGroup">
-            <label for="admin-pass">Yönetici Şifresi</label>
+            <label for="admin-email">Yönetici E-Postası</label>
+            <input
+              id="admin-email"
+              v-model="emailInput"
+              type="email"
+              placeholder="admin@young-professionals.eu"
+              autocomplete="username email"
+              required
+            />
+          </div>
+
+          <div class="formGroup">
+            <label for="admin-pass">Şifre</label>
             <input
               id="admin-pass"
               v-model="passwordInput"
@@ -55,6 +67,9 @@
         </div>
 
         <div class="adminNavRight">
+          <span v-if="adminUserEmail" class="adminUserBadge" :title="adminUserEmail">
+            👤 {{ adminUserEmail }}
+          </span>
           <span v-if="content.lastUpdated" class="lastUpdateText">
             Son Kayıt: {{ formatTime(content.lastUpdated) }}
           </span>
@@ -687,7 +702,9 @@ const activeTab = ref('curriculum')
 const selectedStep = ref<string>('A')
 
 const isAuthenticated = ref(false)
+const emailInput = ref('')
 const passwordInput = ref('')
+const adminUserEmail = ref('')
 const isLoggingIn = ref(false)
 const loginError = ref('')
 
@@ -762,11 +779,12 @@ onMounted(async () => {
 
   // Verify active session via HttpOnly cookie
   try {
-    const res = await $fetch<{ authenticated: boolean }>('/api/admin/auth', {
+    const res = await $fetch<{ authenticated: boolean; user?: { email?: string } }>('/api/admin/auth', {
       method: 'GET'
     })
     if (res?.authenticated) {
       isAuthenticated.value = true
+      adminUserEmail.value = res.user?.email || ''
       await loadContent()
     }
   } catch {
@@ -775,26 +793,31 @@ onMounted(async () => {
 })
 
 async function handleLogin() {
-  if (!passwordInput.value.trim()) return
+  if (!emailInput.value.trim() || !passwordInput.value.trim()) return
   isLoggingIn.value = true
   loginError.value = ''
 
   try {
-    const res = await $fetch<{ success: boolean }>('/api/admin/auth', {
+    const res = await $fetch<{ success: boolean; user?: { email?: string } }>('/api/admin/auth', {
       method: 'POST',
-      body: { password: passwordInput.value.trim() }
+      body: {
+        email: emailInput.value.trim(),
+        password: passwordInput.value.trim()
+      }
     })
 
     if (res.success) {
       isAuthenticated.value = true
+      adminUserEmail.value = res.user?.email || emailInput.value.trim()
       passwordInput.value = '' // Immediately clear plaintext password from memory
+      emailInput.value = ''
       try {
         localStorage.removeItem('yp_admin_pass')
       } catch {}
       await loadContent()
     }
   } catch (err: any) {
-    loginError.value = err.data?.statusMessage || 'Geçersiz şifre. Lütfen tekrar deneyin.'
+    loginError.value = err.data?.statusMessage || 'Geçersiz e-posta veya şifre. Lütfen tekrar deneyin.'
     passwordInput.value = ''
   } finally {
     isLoggingIn.value = false
@@ -803,7 +826,9 @@ async function handleLogin() {
 
 async function handleLogout() {
   isAuthenticated.value = false
+  adminUserEmail.value = ''
   passwordInput.value = ''
+  emailInput.value = ''
   try {
     localStorage.removeItem('yp_admin_pass')
     await $fetch('/api/admin/logout', { method: 'POST' })
@@ -1611,6 +1636,19 @@ input:focus, textarea:focus, select:focus {
   display: flex;
   align-items: center;
   gap: 1rem;
+}
+
+.adminUserBadge {
+  font-size: 0.8rem;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.1);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  padding: 0.35rem 0.75rem;
+  border-radius: 9999px;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .lastUpdateText {
