@@ -675,7 +675,7 @@
       <!-- ADD NEW BOOK MODAL -->
       <v-dialog
         v-model="addBookModal.isOpen"
-        max-width="560px"
+        max-width="680px"
         transition="dialog-top-transition"
         class="confirmDeleteModal"
         @update:model-value="(val) => { if (!val) closeAddBookModal() }"
@@ -687,12 +687,93 @@
             </div>
             <div class="confirmHeaderInfo">
               <h3 class="confirmTitle">Yeni Kitap Ekle</h3>
-              <p class="confirmSubtitle">Okuma planına ve kütüphaneye yeni bir kitap ekleyin.</p>
+              <p class="confirmSubtitle">KitapDünyası'ndan seçin, ürün linki yapıştırın veya manuel ekleyin.</p>
             </div>
           </div>
 
           <form @submit.prevent="submitNewBook">
             <v-card-text class="confirmCardBody">
+              <!-- KitapDünyası Import & Catalog Picker -->
+              <div class="kdImportBox">
+                <div class="kdImportHeader">
+                  <span class="kdImportLabel">🛒 KitapDünyası.eu'dan Hızlı İçe Aktar</span>
+                  <button
+                    type="button"
+                    class="kdCatalogToggleBtn"
+                    @click="toggleKdCatalog"
+                  >
+                    {{ kdCatalog.isOpen ? 'Kataloğu Gizle ▲' : '📖 Katalogdan Seç ▼' }}
+                  </button>
+                </div>
+
+                <div class="kdUrlImportRow">
+                  <input
+                    v-model="kdUrlInput"
+                    type="url"
+                    placeholder="https://kitapdunyasi.eu/products/... linkini yapıştırın"
+                    class="kdUrlInput"
+                  />
+                  <button
+                    type="button"
+                    class="kdFetchBtn"
+                    :disabled="kdUrlLoading || !kdUrlInput.trim()"
+                    @click="fetchBookFromKdUrl"
+                  >
+                    {{ kdUrlLoading ? 'Getiriliyor...' : 'Linkten Getir' }}
+                  </button>
+                </div>
+
+                <!-- Expandable Catalog Grid -->
+                <div v-if="kdCatalog.isOpen" class="kdCatalogPanel">
+                  <input
+                    v-model="kdCatalog.search"
+                    type="text"
+                    placeholder="Yüklenen kitaplar içinde ara (başlık veya yazar)..."
+                    class="kdSearchInput"
+                  />
+
+                  <div v-if="kdCatalog.error" class="kdErrorText">
+                    {{ kdCatalog.error }}
+                  </div>
+
+                  <div v-if="kdCatalog.loading && !kdCatalog.items.length" class="kdLoadingText">
+                    KitapDünyası kataloğu yükleniyor...
+                  </div>
+
+                  <div v-else-if="filteredKdItems.length" class="kdGrid">
+                    <button
+                      v-for="item in filteredKdItems"
+                      :key="item.id"
+                      type="button"
+                      class="kdBookItem"
+                      :class="{ selected: addBookModal.href === item.href }"
+                      @click="selectKdBook(item)"
+                    >
+                      <img :src="item.cover" :alt="item.title" class="kdBookThumb" />
+                      <div class="kdBookMeta">
+                        <strong class="kdBookTitle">{{ item.title }}</strong>
+                        <span class="kdBookAuthor">{{ item.author || item.vendor || 'KitapDünyası' }}</span>
+                      </div>
+                    </button>
+                  </div>
+
+                  <div v-else-if="!kdCatalog.loading" class="kdEmptyText">
+                    Eşleşen kitap bulunamadı.
+                  </div>
+
+                  <div v-if="kdCatalog.hasMore" class="kdLoadMoreRow">
+                    <button
+                      type="button"
+                      class="kdLoadMoreBtn"
+                      :disabled="kdCatalog.loading"
+                      @click="loadKdCatalogPage(kdCatalog.page + 1)"
+                    >
+                      {{ kdCatalog.loading ? 'Yükleniyor...' : 'Daha Fazla Kitap Yükle' }}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
               <div class="addBookModalLayout">
                 <div class="addBookCoverCol">
                   <img
@@ -1499,6 +1580,15 @@ async function syncFromR2Bucket() {
 }
 
 // Book & Platform actions
+interface KdBookItem {
+  id: number | string
+  title: string
+  author: string
+  cover: string
+  href: string
+  vendor?: string
+}
+
 const addBookModal = ref({
   isOpen: false,
   title: '',
@@ -1511,6 +1601,29 @@ const addBookModal = ref({
   error: ''
 })
 
+const kdUrlInput = ref('')
+const kdUrlLoading = ref(false)
+const kdCatalog = ref({
+  isOpen: false,
+  loading: false,
+  error: '',
+  search: '',
+  page: 1,
+  hasMore: false,
+  items: [] as KdBookItem[]
+})
+
+const filteredKdItems = computed(() => {
+  const q = kdCatalog.value.search.trim().toLowerCase()
+  if (!q) return kdCatalog.value.items
+  return kdCatalog.value.items.filter(
+    (b) =>
+      b.title.toLowerCase().includes(q) ||
+      (b.author || '').toLowerCase().includes(q) ||
+      (b.vendor || '').toLowerCase().includes(q)
+  )
+})
+
 function revokeBookPreview() {
   if (addBookModal.value.coverPreview) {
     URL.revokeObjectURL(addBookModal.value.coverPreview)
@@ -1520,6 +1633,8 @@ function revokeBookPreview() {
 
 function openAddBookModal() {
   revokeBookPreview()
+  kdUrlInput.value = ''
+  kdCatalog.value.error = ''
   addBookModal.value = {
     isOpen: true,
     title: '',
@@ -1536,6 +1651,67 @@ function openAddBookModal() {
 function closeAddBookModal() {
   revokeBookPreview()
   addBookModal.value.isOpen = false
+}
+
+function selectKdBook(item: KdBookItem) {
+  revokeBookPreview()
+  addBookModal.value.coverFile = null
+  addBookModal.value.title = item.title
+  addBookModal.value.author = item.author || item.vendor || ''
+  addBookModal.value.href = item.href
+  addBookModal.value.cover = item.cover || '/og.png'
+  addBookModal.value.error = ''
+}
+
+async function toggleKdCatalog() {
+  kdCatalog.value.isOpen = !kdCatalog.value.isOpen
+  if (kdCatalog.value.isOpen && kdCatalog.value.items.length === 0) {
+    await loadKdCatalogPage(1)
+  }
+}
+
+async function loadKdCatalogPage(page: number) {
+  kdCatalog.value.loading = true
+  kdCatalog.value.error = ''
+  try {
+    const res = await $fetch<{ products: KdBookItem[]; page: number; hasMore: boolean }>(
+      '/api/admin/kitapdunyasi',
+      { query: { page } }
+    )
+    if (page === 1) {
+      kdCatalog.value.items = res.products || []
+    } else {
+      const existingIds = new Set(kdCatalog.value.items.map((x) => x.id))
+      const newOnes = (res.products || []).filter((x) => !existingIds.has(x.id))
+      kdCatalog.value.items.push(...newOnes)
+    }
+    kdCatalog.value.page = res.page
+    kdCatalog.value.hasMore = res.hasMore
+  } catch (err: any) {
+    kdCatalog.value.error = err.data?.statusMessage || 'KitapDünyası kataloğu yüklenemedi.'
+  } finally {
+    kdCatalog.value.loading = false
+  }
+}
+
+async function fetchBookFromKdUrl() {
+  const url = kdUrlInput.value.trim()
+  if (!url) return
+
+  kdUrlLoading.value = true
+  addBookModal.value.error = ''
+  try {
+    const res = await $fetch<{ book: KdBookItem }>('/api/admin/kitapdunyasi', {
+      query: { url }
+    })
+    if (res?.book) {
+      selectKdBook(res.book)
+    }
+  } catch (err: any) {
+    addBookModal.value.error = err.data?.statusMessage || 'Kitap bilgisi alınamadı.'
+  } finally {
+    kdUrlLoading.value = false
+  }
 }
 
 function handleNewBookCoverSelect(e: Event) {
@@ -2929,6 +3105,191 @@ input:focus, textarea:focus, select:focus {
 .addBookIconWrapper {
   background: rgba(56, 189, 248, 0.12);
   border-color: rgba(56, 189, 248, 0.25);
+}
+
+.kdImportBox {
+  background: #0d0d12;
+  border: 1px solid #262636;
+  border-radius: 10px;
+  padding: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.kdImportHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.kdImportLabel {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #38bdf8;
+}
+
+.kdCatalogToggleBtn {
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  color: #7dd3fc;
+  padding: 0.3rem 0.65rem;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.kdCatalogToggleBtn:hover {
+  background: rgba(56, 189, 248, 0.22);
+}
+
+.kdUrlImportRow {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.kdUrlInput,
+.kdSearchInput {
+  flex: 1;
+  min-width: 0;
+  background: #15151e;
+  border: 1px solid #2e2e3e;
+  color: #f1f5f9;
+  border-radius: 6px;
+  padding: 0.45rem 0.7rem;
+  font-size: 0.82rem;
+}
+
+.kdFetchBtn {
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 0.45rem 0.85rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.kdFetchBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.kdCatalogPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding-top: 0.4rem;
+  border-top: 1px solid #232332;
+}
+
+.kdGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(185px, 1fr));
+  gap: 0.55rem;
+  max-height: 230px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.kdBookItem {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.45rem;
+  background: #15151e;
+  border: 1px solid #262636;
+  border-radius: 8px;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.kdBookItem:hover {
+  border-color: #38bdf8;
+  background: #1a1a26;
+}
+
+.kdBookItem.selected {
+  border-color: #22c55e;
+  background: rgba(34, 197, 94, 0.1);
+}
+
+.kdBookThumb {
+  width: 38px;
+  height: 54px;
+  object-fit: cover;
+  border-radius: 4px;
+  flex-shrink: 0;
+  background: #0d0d12;
+}
+
+.kdBookMeta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.kdBookTitle {
+  font-size: 0.78rem;
+  color: #f1f5f9;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.25;
+}
+
+.kdBookAuthor {
+  font-size: 0.7rem;
+  color: #94a3b8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kdLoadingText,
+.kdEmptyText {
+  font-size: 0.8rem;
+  color: #94a3b8;
+  text-align: center;
+  padding: 0.75rem;
+}
+
+.kdErrorText {
+  font-size: 0.8rem;
+  color: #f87171;
+  padding: 0.4rem 0.6rem;
+  background: rgba(239, 68, 68, 0.1);
+  border-radius: 6px;
+}
+
+.kdLoadMoreRow {
+  display: flex;
+  justify-content: center;
+}
+
+.kdLoadMoreBtn {
+  background: #242432;
+  color: #cbd5e1;
+  border: 1px solid #323244;
+  border-radius: 6px;
+  padding: 0.35rem 0.9rem;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.kdLoadMoreBtn:hover:not(:disabled) {
+  background: #323244;
+  color: #fff;
 }
 
 .addBookModalLayout {
