@@ -25,7 +25,7 @@ export default defineNuxtConfig({
     supabaseKey: process.env.SUPABASE_KEY || 'sb_publishable_uGQJxk4gtX_Lw35UZXSpsA_qldd9t38',
     public: {
       appName: 'Young Professionals EU',
-      appVersion: '2.3.4'
+      appVersion: '2.3.5'
     }
   },
   app: {
