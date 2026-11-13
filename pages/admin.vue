@@ -479,7 +479,7 @@
                 <h2>📚 Kütüphane ve Okuma Planı Kitapları</h2>
                 <p>Okuma planındaki kitapları, kapak resimlerini ve satın alma linklerini yönetin.</p>
               </div>
-              <button class="addBtn" @click="addNewBook">
+              <button class="addBtn" @click="openAddBookModal">
                 ＋ Yeni Kitap Ekle
               </button>
             </div>
@@ -669,6 +669,113 @@
               {{ confirmDialog.confirmText || 'Evet, Sil' }}
             </button>
           </v-card-actions>
+        </v-card>
+      </v-dialog>
+
+      <!-- ADD NEW BOOK MODAL -->
+      <v-dialog
+        v-model="addBookModal.isOpen"
+        max-width="560px"
+        transition="dialog-top-transition"
+        class="confirmDeleteModal"
+        @update:model-value="(val) => { if (!val) closeAddBookModal() }"
+      >
+        <v-card class="confirmCard" theme="dark">
+          <div class="confirmCardHeader">
+            <div class="confirmIconWrapper addBookIconWrapper">
+              <span class="confirmIcon">📚</span>
+            </div>
+            <div class="confirmHeaderInfo">
+              <h3 class="confirmTitle">Yeni Kitap Ekle</h3>
+              <p class="confirmSubtitle">Okuma planına ve kütüphaneye yeni bir kitap ekleyin.</p>
+            </div>
+          </div>
+
+          <form @submit.prevent="submitNewBook">
+            <v-card-text class="confirmCardBody">
+              <div class="addBookModalLayout">
+                <div class="addBookCoverCol">
+                  <img
+                    :src="addBookModal.coverPreview || addBookModal.cover || '/og.png'"
+                    alt="Kitap Kapağı Önizleme"
+                    class="addBookCoverImg"
+                  />
+                  <label class="uploadCoverLabel">
+                    📷 Kapak Seç
+                    <input
+                      type="file"
+                      accept="image/*"
+                      style="display: none;"
+                      @change="handleNewBookCoverSelect"
+                    />
+                  </label>
+                  <button
+                    v-if="addBookModal.coverPreview"
+                    type="button"
+                    class="clearCoverBtn"
+                    @click="clearNewBookCover"
+                  >
+                    Varsayılana Dön
+                  </button>
+                </div>
+
+                <div class="addBookFieldsCol">
+                  <div class="formGroup">
+                    <label for="new-book-title">Kitap Başlığı *</label>
+                    <input
+                      id="new-book-title"
+                      v-model="addBookModal.title"
+                      type="text"
+                      placeholder="Örn: 40 Hadithe – Essenzielle Lehren..."
+                      required
+                    />
+                  </div>
+                  <div class="formGroup">
+                    <label for="new-book-author">Yazar</label>
+                    <input
+                      id="new-book-author"
+                      v-model="addBookModal.author"
+                      type="text"
+                      placeholder="Örn: Mit Kommentar von ..."
+                    />
+                  </div>
+                  <div class="formGroup">
+                    <label for="new-book-href">Satın Alma / Detay Linki</label>
+                    <input
+                      id="new-book-href"
+                      v-model="addBookModal.href"
+                      type="url"
+                      placeholder="https://kitapdunyasi.eu/..."
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div v-if="addBookModal.error" class="errorAlert">
+                {{ addBookModal.error }}
+              </div>
+            </v-card-text>
+
+            <v-card-actions class="confirmCardActions">
+              <v-spacer />
+              <button
+                type="button"
+                class="confirmBtn cancelBtn"
+                :disabled="addBookModal.isSubmitting"
+                @click="closeAddBookModal"
+              >
+                Vazgeç
+              </button>
+              <button
+                type="submit"
+                class="confirmBtn primarySubmitBtn"
+                :disabled="addBookModal.isSubmitting"
+              >
+                <span v-if="addBookModal.isSubmitting">Yükleniyor...</span>
+                <span v-else>＋ Kitabı Ekle</span>
+              </button>
+            </v-card-actions>
+          </form>
         </v-card>
       </v-dialog>
     </div>
@@ -1392,13 +1499,97 @@ async function syncFromR2Bucket() {
 }
 
 // Book & Platform actions
-function addNewBook() {
-  content.value.readingPlanBooks.push({
-    title: 'Yeni Kitap',
-    author: 'Yazar Adı',
+const addBookModal = ref({
+  isOpen: false,
+  title: '',
+  author: '',
+  href: '',
+  cover: '/og.png',
+  coverFile: null as File | null,
+  coverPreview: '',
+  isSubmitting: false,
+  error: ''
+})
+
+function revokeBookPreview() {
+  if (addBookModal.value.coverPreview) {
+    URL.revokeObjectURL(addBookModal.value.coverPreview)
+    addBookModal.value.coverPreview = ''
+  }
+}
+
+function openAddBookModal() {
+  revokeBookPreview()
+  addBookModal.value = {
+    isOpen: true,
+    title: '',
+    author: '',
+    href: '',
     cover: '/og.png',
-    href: 'https://kitapdunyasi.eu'
-  })
+    coverFile: null,
+    coverPreview: '',
+    isSubmitting: false,
+    error: ''
+  }
+}
+
+function closeAddBookModal() {
+  revokeBookPreview()
+  addBookModal.value.isOpen = false
+}
+
+function handleNewBookCoverSelect(e: Event) {
+  const target = e.target as HTMLInputElement
+  if (!target.files || !target.files[0]) return
+
+  revokeBookPreview()
+  const file = target.files[0]
+  addBookModal.value.coverFile = file
+  addBookModal.value.coverPreview = URL.createObjectURL(file)
+  target.value = ''
+}
+
+function clearNewBookCover() {
+  revokeBookPreview()
+  addBookModal.value.coverFile = null
+}
+
+async function submitNewBook() {
+  const title = addBookModal.value.title.trim()
+  if (!title) {
+    addBookModal.value.error = 'Lütfen kitap başlığını girin.'
+    return
+  }
+
+  addBookModal.value.isSubmitting = true
+  addBookModal.value.error = ''
+
+  try {
+    let coverUrl = addBookModal.value.cover.trim() || '/og.png'
+
+    if (addBookModal.value.coverFile) {
+      const res = await uploadFileToR2Client(addBookModal.value.coverFile, 'books/2026-27')
+      if (res.success && res.href) {
+        coverUrl = res.href
+      }
+    }
+
+    content.value.readingPlanBooks.push({
+      title,
+      author: addBookModal.value.author.trim(),
+      cover: coverUrl,
+      href: addBookModal.value.href.trim() || 'https://kitapdunyasi.eu'
+    })
+
+    closeAddBookModal()
+    feedbackType.value = 'success'
+    feedbackMsg.value = `"${title}" listeye eklendi. Kalıcı olması için "Değişiklikleri Kaydet" butonuna tıklayın.`
+    setTimeout(() => { feedbackMsg.value = '' }, 4000)
+  } catch (err: any) {
+    addBookModal.value.error = 'Kapak resmi yüklenemedi: ' + (err.data?.statusMessage || err.message)
+  } finally {
+    addBookModal.value.isSubmitting = false
+  }
 }
 
 async function handleBookCoverUpload(e: Event, bIdx: number) {
@@ -2732,5 +2923,86 @@ input:focus, textarea:focus, select:focus {
   background: #ef4444;
   box-shadow: 0 6px 18px rgba(239, 68, 68, 0.5);
   transform: translateY(-1px);
+}
+
+/* Add Book Modal */
+.addBookIconWrapper {
+  background: rgba(56, 189, 248, 0.12);
+  border-color: rgba(56, 189, 248, 0.25);
+}
+
+.addBookModalLayout {
+  display: flex;
+  gap: 1.25rem;
+  align-items: flex-start;
+}
+
+.addBookCoverCol {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  width: 120px;
+  flex-shrink: 0;
+}
+
+.addBookCoverImg {
+  width: 110px;
+  height: 155px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid #2e2e3e;
+  background: #0d0d12;
+}
+
+.clearCoverBtn {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 0.75rem;
+  cursor: pointer;
+  padding: 0.2rem 0.4rem;
+  text-decoration: underline;
+}
+
+.clearCoverBtn:hover {
+  color: #f87171;
+}
+
+.addBookFieldsCol {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.primarySubmitBtn {
+  background: #c91d27;
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(201, 29, 39, 0.35);
+}
+
+.primarySubmitBtn:hover:not(:disabled) {
+  background: #dc2626;
+  box-shadow: 0 6px 18px rgba(220, 38, 38, 0.45);
+  transform: translateY(-1px);
+}
+
+.primarySubmitBtn:disabled,
+.cancelBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 540px) {
+  .addBookModalLayout {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .addBookCoverCol {
+    width: 100%;
+  }
 }
 </style>
